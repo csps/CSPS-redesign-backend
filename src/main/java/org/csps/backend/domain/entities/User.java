@@ -1,5 +1,6 @@
 package org.csps.backend.domain.entities;
 
+import java.time.LocalDate;
 import java.util.Date;
 
 import org.csps.backend.domain.enums.UserRole;
@@ -42,7 +43,7 @@ public class User {
     private String middleName;
 
     @Column(nullable = false)
-    private Date birthDate;
+    private LocalDate birthDate;
 
     @Column(nullable = false)
     @Email(message = "Invalid email format")
