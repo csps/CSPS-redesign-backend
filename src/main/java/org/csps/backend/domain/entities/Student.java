@@ -22,7 +22,7 @@ public class Student {
     @Column(nullable = false)
     private Byte yearLevel;
 
-    @OneToOne
+    @OneToOne // User will not be deleted if Student is deleted, cause maybe the user was also an admin
     @JoinColumn(name = "user_id")
     private User user;
 }

@@ -70,15 +70,8 @@ public class StudentServiceImpl implements StudentService {
     public StudentResponseDTO updateStudent(StudentPatchDTO studentPatchDTO, Long studentId) {
         Student existingStudent = studentRepository.findById(studentId)
                 .orElseThrow(() -> new StudentNotFoundException(studentId));
-
-        // Update Student fields (ignoring nested User)
+        // Update Student fields (includes nested User)
         studentMapper.updateEntityFromPatchDto(studentPatchDTO, existingStudent);
-
-        // Update nested User if present
-        if (studentPatchDTO.getUserPatchDTO() != null) {
-            userMapper.updateEntityFromDto(studentPatchDTO.getUserPatchDTO(), existingStudent.getUser());
-        }
-
         Student savedStudent = studentRepository.save(existingStudent);
         return studentMapper.toResponseDTO(savedStudent);
     }
