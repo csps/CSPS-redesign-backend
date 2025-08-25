@@ -6,18 +6,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.csps.backend.domain.enums.UserRole;
+
 import java.time.LocalDate;
 
-// User for both creating and full updating
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserRequestDTO {
-
-    @NotNull(message = "User ID is required")
-    private Long userId;
-
+public class CreateUserDTO {
     @NotBlank(message = "First name is required")
     @Size(max = 50, message = "First name must not exceed 50 characters")
     private String firstName;

@@ -1,4 +1,4 @@
-package org.csps.backend.exceptions;
+package org.csps.backend.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

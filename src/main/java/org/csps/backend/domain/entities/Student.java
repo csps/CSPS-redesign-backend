@@ -22,7 +22,14 @@ public class Student {
     @Column(nullable = false)
     private Byte yearLevel;
 
-    @OneToOne // User will not be deleted if Student is deleted, cause maybe the user was also an admin
+    @Column(nullable = false)
+    private String password;
+
+    @Column(nullable = false, unique = true)
+    private String username;
+
+    // TODO will this be deleted when user is deleted?
+    @OneToOne
     @JoinColumn(name = "user_id")
     private User user;
 }

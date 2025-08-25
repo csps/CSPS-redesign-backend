@@ -21,11 +21,11 @@ public class StudentController {
             this.studentService = studentService;
     }
 
-    @PostMapping()
-    public ResponseEntity<StudentResponseDTO> createStudent(@Valid @RequestBody StudentRequestDTO studentRequestDTO) {
-        StudentResponseDTO createdStudent = studentService.createStudent(studentRequestDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdStudent);
-    }
+//    @PostMapping()
+//    public ResponseEntity<StudentResponseDTO> createStudent(@Valid @RequestBody StudentRequestDTO studentRequestDTO) {
+//        StudentResponseDTO createdStudent = studentService.createStudentProfile(studentRequestDTO);
+//        return ResponseEntity.status(HttpStatus.CREATED).body(createdStudent);
+//    }
 
     @GetMapping()
     public ResponseEntity<List<StudentResponseDTO>> getAllStudents() {
@@ -35,26 +35,26 @@ public class StudentController {
 
     @GetMapping("/{studentId}")
     public ResponseEntity<StudentResponseDTO> getStudent(@PathVariable Long studentId) {
-        StudentResponseDTO student = studentService.getStudent(studentId); // should be map first to responseDTO
+        StudentResponseDTO student = studentService.getStudentProfile(studentId); // should be map first to responseDTO
         return ResponseEntity.ok(student);
     }
 
     @PatchMapping("/{studentId}")
-    public ResponseEntity<StudentResponseDTO> updateStudent(@Valid @RequestBody StudentPatchDTO studentPatchDTO, @PathVariable Long studentId) {
-        StudentResponseDTO updatedStudent = studentService.updateStudent(studentPatchDTO, studentId);
+    public ResponseEntity<StudentResponseDTO> patchStudent(@Valid @RequestBody StudentPatchDTO studentPatchDTO) {
+        StudentResponseDTO updatedStudent = studentService.patchStudentProfile(studentPatchDTO);
         return ResponseEntity.ok(updatedStudent);
     }
 
     @PutMapping("/{studentId}")
-    public ResponseEntity<StudentResponseDTO> updateStudent(@Valid @RequestBody StudentRequestDTO studentRequestDTO, @PathVariable Long studentId) {
-        StudentResponseDTO updatedStudent = studentService.updateStudent(studentRequestDTO, studentId);
+    public ResponseEntity<StudentResponseDTO> updateStudent(@Valid @RequestBody StudentRequestDTO studentRequestDTO) {
+        StudentResponseDTO updatedStudent = studentService.updateStudentProfile(studentRequestDTO);
         return ResponseEntity.ok(updatedStudent);
     }
 
     // Test
     @DeleteMapping("/{studentId}")
     public ResponseEntity<Void> deleteStudent(@PathVariable Long studentId) {
-        studentService.deleteStudent(studentId);
+        studentService.deleteStudentProfile(studentId);
         return ResponseEntity.noContent().build();
     }
 }

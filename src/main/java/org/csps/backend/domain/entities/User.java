@@ -1,6 +1,5 @@
 package org.csps.backend.domain.entities;
 
-import java.time.LocalDate;
 import java.util.Date;
 
 import org.csps.backend.domain.enums.UserRole;
@@ -30,9 +29,6 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
-    
-    @Column(nullable = false)
-    private String username;
 
     @Column(nullable = false)
     private String firstName;
@@ -43,14 +39,11 @@ public class User {
     private String middleName;
 
     @Column(nullable = false)
-    private LocalDate birthDate;
+    private Date birthDate;
 
     @Column(nullable = false)
     @Email(message = "Invalid email format")
     private String email;
-
-    @Column(nullable = false)
-    private String password;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)

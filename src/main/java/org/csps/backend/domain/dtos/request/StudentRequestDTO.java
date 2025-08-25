@@ -18,9 +18,17 @@ public class StudentRequestDTO {
     @Size(min = 8, max = 8, message = "Invalid Student ID format")
     private String studentId;
 
+    @NotBlank(message = "Student username is required")
+    private String username;
+
+    @NotBlank(message = "Student password is required")
+    private String password;
+
     @NotNull(message = "Year level is required")
     private Byte yearLevel;
 
+
+    // TODO consider using user ID
     @NotNull(message = "User is required")
     private UserRequestDTO userRequestDTO;
 

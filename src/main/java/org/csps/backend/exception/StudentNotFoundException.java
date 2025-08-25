@@ -1,4 +1,4 @@
-package org.csps.backend.exceptions;
+package org.csps.backend.exception;
 
 public class StudentNotFoundException extends RuntimeException {
 
@@ -6,7 +6,7 @@ public class StudentNotFoundException extends RuntimeException {
         super(message);
     }
 
-    public StudentNotFoundException(Long id) {
-        super("Student with ID " + id + " not found");
+    public StudentNotFoundException(Long studentId) {
+        super("Student with ID " + studentId + " not found");
     }
 }

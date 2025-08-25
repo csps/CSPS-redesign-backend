@@ -16,6 +16,10 @@ public class StudentPatchDTO {
     @Size(min = 8, max = 8, message = "Invalid Student ID format")
     private String studentId;
 
+    private String username;
+
+    private String password;
+
     private Byte yearLevel;
 
     private UserPatchDTO userPatchDTO;

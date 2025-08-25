@@ -1,39 +1,36 @@
 package org.csps.backend.domain.entities;
 
-import org.csps.backend.domain.enums.AdminPosition;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.csps.backend.domain.enums.AdminPosition;
 
 @Entity
-@Table(name = "admins")
 @Data
-@NoArgsConstructor
+@Table
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
 public class Admin {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long adminId; // Admin’s own PK
+    private Long userId;
 
     @OneToOne
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @JoinColumn(name = "user_id")
+    @MapsId
     private User user;
+
+    @Column(nullable = false)
+    private String password;
+
+    @Column(nullable = false, unique = true)
+    private String username;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AdminPosition position;
+
 }
