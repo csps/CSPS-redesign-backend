@@ -17,14 +17,16 @@ import lombok.Data;
 @AllArgsConstructor
 public class UserPrincipal implements UserDetails {
 
-    private final UserAccount user;
-    private final String domainId; 
-    private final String role;
+    private final UserAccount user;  // underlying user entity
+    private final String domainId;   // role-specific identifier (studentId/adminId)
+    private final String role;       // role name (STUDENT / ADMIN)
 
+    // Expose domainId directly
     public String getDomainId() {
         return domainId;
     }
 
+    // Return adminId if role = ADMIN
     public Long getAdminId() {
         if ("ADMIN".equalsIgnoreCase(role)) {
             return Long.valueOf(domainId);
@@ -32,6 +34,7 @@ public class UserPrincipal implements UserDetails {
         return null;
     }
 
+    // Return studentId if role = STUDENT
     public String getStudentId() {
         if ("STUDENT".equalsIgnoreCase(role)) {
             return domainId;
@@ -39,11 +42,13 @@ public class UserPrincipal implements UserDetails {
         return null;
     }
 
+    // Spring Security: grant role authority (e.g., ROLE_ADMIN, ROLE_STUDENT)
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role));
     }
 
+    // Delegate to UserAccount for credentials
     @Override
     public String getPassword() {
         return user.getPassword();
@@ -54,6 +59,7 @@ public class UserPrincipal implements UserDetails {
         return user.getUsername();
     }
 
+    // Default: account is always active/valid
     @Override
     public boolean isAccountNonExpired() { return true; }
 

@@ -38,6 +38,8 @@ public class AuthController {
     private final StudentService studentService;
     private final AdminService adminService;
 
+
+    // Endpoint for Login (Accessible for Everyone)
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody SignInCredentialRequestDTO request) {
         String usernameRequest = request.getUsername();
@@ -55,7 +57,7 @@ public class AuthController {
         return ResponseEntity.ok().body(new JwtTokenResponseDto(token, refreshToken));
     }
 
-    
+    // Endpoint for Access Token (Accepts a refresh token request and will respond a new access token)    
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(@RequestBody Map<String, String> payload) {
         String requestToken = payload.get("refreshToken");
@@ -69,6 +71,7 @@ public class AuthController {
                 .orElseGet(() ->ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid or expired refresh token")));
     }
     
+    // Endpoint for Profile (if the user logged in is Student)
     @GetMapping("/profile")
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<?> studentProfile(@AuthenticationPrincipal String studentId) {
@@ -77,6 +80,7 @@ public class AuthController {
         return ResponseEntity.ok(student);
     }
 
+    // Endpoint for Profile (if the user logged in is Student)
     @GetMapping("/admin/profile")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> adminProfile(@AuthenticationPrincipal Long adminId) {

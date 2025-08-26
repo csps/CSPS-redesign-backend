@@ -22,72 +22,79 @@ import lombok.RequiredArgsConstructor;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserAccountService userService;
-    private final CustomUserDetailsService customUserDetailsService; // integrate your user details service
+    private final CustomUserDetailsService customUserDetailsService;
 
-@Override
-protected void doFilterInternal(HttpServletRequest request,
-                                HttpServletResponse response,
-                                FilterChain filterChain) throws ServletException, java.io.IOException {
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, java.io.IOException {
 
-    // 1. Get the Authorization header
-    String authHeader = request.getHeader("Authorization");
+        // Extract Authorization header
+        String authHeader = request.getHeader("Authorization");
 
-    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-        filterChain.doFilter(request, response);
-
-        return;
-    }
-
-    try {
-        final String token = authHeader.substring(7).trim();
-        final Long userId = jwtService.extractUsernameId(token);
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        if (auth == null) {
-            UserAccount user = userService.findById(userId)
-                        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-            
-            SignInCredentialRequestDTO requestCredential = new SignInCredentialRequestDTO(user.getUsername(), user.getPassword());
-            
-            if (!jwtService.isTokenValid(token, requestCredential)) {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Invalid token");
-                return;
-            }
-            
-            Object domainId = null;
-            UserPrincipal userPrincipal = (UserPrincipal) customUserDetailsService.loadUserByUsername(user.getUsername());
-
-            switch(userPrincipal.getRole()) {
-                case "STUDENT" -> {domainId = userPrincipal.getStudentId();}
-                case "ADMIN" -> {domainId = userPrincipal.getAdminId();}
-                default -> throw new RuntimeException("Role not recognized");                
-            }
-            
-            UsernamePasswordAuthenticationToken authToken = 
-                    new UsernamePasswordAuthenticationToken(
-                        domainId, 
-                        null,
-                        userPrincipal.getAuthorities()
-            );
-            
-
-
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authToken);
-        }
-
-    }   
-    catch (Exception ex) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Invalid or expired token");
-            
+        // Skip if no header or doesn't start with Bearer
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
             return;
         }
 
+        try {
+            final String token = authHeader.substring(7).trim(); // Extract token
+            final Long userId = jwtService.extractUsernameId(token); // Parse userId from token
+
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+            // Authenticate only if no authentication exists
+            if (auth == null) {
+                // Load user from DB
+                UserAccount user = userService.findById(userId)
+                        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+                // Build credential DTO for token validation
+                SignInCredentialRequestDTO requestCredential =
+                        new SignInCredentialRequestDTO(user.getUsername(), user.getPassword());
+
+                // Validate token
+                if (!jwtService.isTokenValid(token, requestCredential)) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("Invalid token");
+                    return;
+                }
+                
+                // If token is valid
+
+                // Load principal (with role + authorities)
+                UserPrincipal userPrincipal =
+                        (UserPrincipal) customUserDetailsService.loadUserByUsername(user.getUsername());
+
+                // Decide which domainId to use (Student/Admin)
+                Object domainId = switch (userPrincipal.getRole()) {
+                    case "STUDENT" -> userPrincipal.getStudentId();
+                    case "ADMIN" -> userPrincipal.getAdminId();
+                    default -> throw new RuntimeException("Role not recognized");
+                };
+
+                // Build authentication object
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(
+                                domainId,
+                                null,
+                                userPrincipal.getAuthorities()
+                        );
+
+                // Attach request details and set authentication
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
+
+        } catch (Exception ex) {
+            // Handle invalid/expired token
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Invalid or expired token");
+            return;
+        }
+
+        // Continue request filter chain
         filterChain.doFilter(request, response);
-
     }
-
 }

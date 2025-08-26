@@ -23,27 +23,30 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        // Fetch base user account
         UserAccount user = userAccountRepository.findByUsername(username);
         String domainId = null;
         String role = user.getRole().name();
 
+        // Resolve domainId depending on role
         switch (role) {
             case "STUDENT" -> {
                 Student student = studentRepository.findByUserAccountUserAccountId(user.getUserAccountId())
                         .orElseThrow(() -> new RuntimeException("Student not found"));
-                domainId = student.getStudentId();
+                domainId = student.getStudentId(); // use studentId as domain identifier
             }
             case "ADMIN" -> {
                 Admin admin = adminRepository.findByUserAccountUserAccountId(user.getUserAccountId())
                         .orElseThrow(() -> new RuntimeException("Admin not found"));
-                domainId = admin.getAdminId().toString();
+                domainId = admin.getAdminId().toString(); // use adminId as domain identifier
             }
             default -> throw new RuntimeException("Role not recognized");
         }
 
+        // Build custom UserPrincipal with role + domain-specific ID
         return UserPrincipal.builder()
-                .user(user)       // Whole user entity if needed
-                .domainId(domainId) // Now contains studentId or adminId
+                .user(user)         // full user entity
+                .domainId(domainId) // studentId or adminId
                 .role(role)
                 .build();
     }
