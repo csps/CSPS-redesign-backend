@@ -78,4 +78,11 @@ public class MerchVariantServiceImpl implements MerchVariantService {
 
         return merchVariantMapper.toResponseDTO(saved);
     }
+
+    @Override
+    public List<MerchVariantResponseDTO> getMerchVariantByMerchId(Long merchId) {
+        return merchVariantRepository.findByMerchMerchId(merchId).stream()
+                .map(merchVariantMapper::toResponseDTO)
+                .toList();
+    }
 }
