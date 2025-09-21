@@ -4,6 +4,7 @@ import org.csps.backend.domain.dtos.request.MerchVariantRequestDTO;
 import org.csps.backend.domain.dtos.response.MerchVariantResponseDTO;
 import org.csps.backend.service.MerchVariantService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +20,7 @@ public class MerchVariantController {
     private final MerchVariantService merchVariantService;
 
     @PostMapping("/{merchId}/add")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<MerchVariantResponseDTO> addVariant(
             @PathVariable Long merchId,
             @RequestBody MerchVariantRequestDTO variantRequest) {
