@@ -8,7 +8,6 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring", uses = {PurchaseItemMapper.class})
 public interface PurchaseMapper {
     @Mapping(target = "studentId", source = "student.studentId")
-    @Mapping(target = "purchaseItemId", ignore = true)
     @Mapping(target = "items", source = "items")
     PurchaseResponseDTO toResponseDTO(Purchase purchase);
 }
