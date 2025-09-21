@@ -7,6 +7,7 @@ import org.csps.backend.domain.dtos.response.PurchaseResponseDTO;
 import org.csps.backend.service.PurchaseService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,9 +31,11 @@ public class PurchaseController {
     }
 
 
-    @PostMapping("/add")
-    @PreAuthorize("hasRole('ADMIN')")
-    ResponseEntity<PurchaseResponseDTO> createPurchaseResponseDTO(@RequestBody PurchaseRequestDTO purchaseRequestDTO) {
+    @PostMapping
+    @PreAuthorize("hasRole('STUDENT')")
+    ResponseEntity<PurchaseResponseDTO> createPurchaseResponseDTO(@AuthenticationPrincipal String studentId, @RequestBody PurchaseRequestDTO purchaseRequestDTO) {
+        // get student id from authentication
+        purchaseRequestDTO.setStudentId(studentId);
         // create purchase
         return ResponseEntity.ok(purchaseService.createPurchase(purchaseRequestDTO));
     }
