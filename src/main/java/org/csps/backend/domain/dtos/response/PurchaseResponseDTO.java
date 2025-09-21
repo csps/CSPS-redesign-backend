@@ -16,7 +16,6 @@ import lombok.NoArgsConstructor;
 public class PurchaseResponseDTO {
     private Long purchaseId;
     private String studentId;
-    private Long purchaseItemId;
     private List<PurchaseItemResponseDTO> items;
     private LocalDateTime purchasedAt;
     private Double totalPrice;
