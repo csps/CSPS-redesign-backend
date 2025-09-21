@@ -86,4 +86,14 @@ public class StudentServiceImpl implements StudentService {
        return studentMapper.toResponseDTO(existingStudent);
    }
 
+   @Override
+   public Optional<Student> findByAccountId(Long accountId) {
+    return studentRepository.findByUserAccountUserAccountId(accountId);
+   }
+
+   @Override
+   public Optional<Student> findById(String id) {
+    return studentRepository.findByStudentId(id);
+   }
+   
 }

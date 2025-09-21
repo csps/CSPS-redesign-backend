@@ -27,19 +27,22 @@ public class StudentController {
 
    @PostMapping()
    public ResponseEntity<StudentResponseDTO> createStudent(@RequestBody StudentRequestDTO studentRequestDTO) {
+       // create student
        StudentResponseDTO createdStudent = studentService.createStudentProfile(studentRequestDTO);
        return ResponseEntity.status(HttpStatus.CREATED).body(createdStudent);
    }
 
    @GetMapping()
    public ResponseEntity<List<StudentResponseDTO>> getAllStudents() {
-       List<StudentResponseDTO> students = studentService.getAllStudents(); // map all Students to StudentResponseDTO
+       // map all Students to StudentResponseDTO
+       List<StudentResponseDTO> students = studentService.getAllStudents();
        return ResponseEntity.ok(students);
    }
 
    @GetMapping("/{studentId}")
    public ResponseEntity<StudentResponseDTO> getStudent(@PathVariable Long studentId) {
-       StudentResponseDTO student = studentService.getStudentProfile(studentId); // should be map first to responseDTO
+       // should be map first to responseDTO
+       StudentResponseDTO student = studentService.getStudentProfile(studentId);
        return ResponseEntity.ok(student);
    }
 }
