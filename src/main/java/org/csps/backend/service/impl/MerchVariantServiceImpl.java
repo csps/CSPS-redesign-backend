@@ -1,8 +1,6 @@
 package org.csps.backend.service.impl;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 import org.csps.backend.domain.dtos.request.InvalidRequestException;
 import org.csps.backend.domain.dtos.request.MerchVariantRequestDTO;
@@ -96,7 +94,7 @@ public class MerchVariantServiceImpl implements MerchVariantService {
     }
 
     @Override
-    public Map<String, Object> putMerchVariant(Long merchId, MerchVariantUpdateRequestDTO merchVariantRequestDTO) {
+    public MerchVariantResponseDTO putMerchVariant(Long merchId, MerchVariantUpdateRequestDTO merchVariantRequestDTO) {
         String color = merchVariantRequestDTO.getColor();
         ClothingSizing clothingSizing = merchVariantRequestDTO.getSize();
         Double price = merchVariantRequestDTO.getPrice();
@@ -145,15 +143,14 @@ public class MerchVariantServiceImpl implements MerchVariantService {
 
         merchVariantRepository.save(merchVariant);
 
-        return Map.of("message", "Merch Variant Updated Successfully",
-                        "timestamp", LocalDateTime.now(),
-                        "status", 200);
+        MerchVariantResponseDTO merchVariantResponseDTO = merchVariantMapper.toResponseDTO(merchVariant);
 
+        return merchVariantResponseDTO;
         
     }
 
        @Override
-    public Map<String, Object> patchMerchVariant(Long merchId, MerchVariantUpdateRequestDTO merchVariantRequestDTO) {
+        public MerchVariantResponseDTO patchMerchVariant(Long merchId, MerchVariantUpdateRequestDTO merchVariantRequestDTO) {
         String color = merchVariantRequestDTO.getColor();
         ClothingSizing clothingSizing = merchVariantRequestDTO.getSize();
         Double price = merchVariantRequestDTO.getPrice();
@@ -201,13 +198,8 @@ public class MerchVariantServiceImpl implements MerchVariantService {
 
         merchVariantRepository.save(merchVariant);
 
-        return Map.of("message", "Merch Variant Updated Successfully",
-                        "timestamp", LocalDateTime.now(),
-                        "status", 200);
+        MerchVariantResponseDTO merchVariantResponseDTO = merchVariantMapper.toResponseDTO(merchVariant);
 
-        
+        return merchVariantResponseDTO;        
     }
-
-
-
 }
