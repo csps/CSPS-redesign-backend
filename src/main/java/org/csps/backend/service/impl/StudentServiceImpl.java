@@ -80,7 +80,7 @@ public class StudentServiceImpl implements StudentService {
 
    // Get Student By Id
    @Override
-   public StudentResponseDTO getStudentProfile(Long studentId) {
+   public StudentResponseDTO getStudentProfile(String studentId) {
        Student existingStudent = studentRepository.findById(studentId)
                .orElseThrow(() -> new StudentNotFoundException(studentId));
        return studentMapper.toResponseDTO(existingStudent);
@@ -92,8 +92,8 @@ public class StudentServiceImpl implements StudentService {
    }
 
    @Override
-   public Optional<Student> findById(String id) {
-    return studentRepository.findByStudentId(id);
+   public Optional<StudentResponseDTO> findById(String id) {
+        return studentRepository.findByStudentId(id).map(studentMapper::toResponseDTO);
    }
    
 }
