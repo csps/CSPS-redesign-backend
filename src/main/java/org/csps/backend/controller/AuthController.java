@@ -3,7 +3,9 @@ package org.csps.backend.controller;
 import java.util.Map;
 
 import org.csps.backend.domain.dtos.request.SignInCredentialRequestDTO;
+import org.csps.backend.domain.dtos.response.AdminResponseDTO;
 import org.csps.backend.domain.dtos.response.AuthResponseDTO;
+import org.csps.backend.domain.dtos.response.StudentResponseDTO;
 import org.csps.backend.domain.entities.UserAccount;
 import org.csps.backend.security.JwtService;
 import org.csps.backend.service.AdminService;
@@ -81,7 +83,7 @@ public class AuthController {
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<?> studentProfile(@AuthenticationPrincipal String studentId) {
         // get student by id
-        var student = studentService.findById(studentId)
+        StudentResponseDTO student = studentService.findById(studentId)
                 .orElseThrow(() -> new UsernameNotFoundException("Student not found"));
         return ResponseEntity.ok(student);
     }
@@ -90,7 +92,7 @@ public class AuthController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> adminProfile(@AuthenticationPrincipal Long adminId) {
         // get admin by id
-        var admin = adminService.findById(adminId)
+        AdminResponseDTO admin = adminService.findById(adminId)
                 .orElseThrow(() -> new UsernameNotFoundException("Admin not found"));
         // return admin
         return ResponseEntity.ok(admin);
