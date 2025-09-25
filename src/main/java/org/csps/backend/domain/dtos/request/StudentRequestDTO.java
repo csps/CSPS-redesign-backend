@@ -1,5 +1,7 @@
 package org.csps.backend.domain.dtos.request;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -22,6 +24,7 @@ public class StudentRequestDTO {
     private Byte yearLevel;
     
     @NotNull(message = "User Info is required")
+    @JsonAlias("user_profile")
     private UserRequestDTO userRequestDTO;
 
 }
