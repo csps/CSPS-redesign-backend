@@ -5,8 +5,10 @@ import java.util.Map;
 
 import org.csps.backend.domain.dtos.request.MerchRequestDTO;
 import org.csps.backend.domain.dtos.request.MerchUpdateRequestDTO;
+import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.MerchResponseDTO;
 import org.csps.backend.service.MerchService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -50,16 +52,21 @@ public class MerchController {
 
     @PutMapping("/update/{merchId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String,Object>> putMerch(@PathVariable Long merchId, @RequestBody MerchUpdateRequestDTO merchUpdateRequestDTO) {
-        Map<String,Object> response = merchService.putMerch(merchId, merchUpdateRequestDTO);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<GlobalResponseBuilder<MerchResponseDTO>> putMerch(@PathVariable Long merchId, @RequestBody MerchUpdateRequestDTO merchUpdateRequestDTO) {
+        MerchResponseDTO merchResponseDTO = merchService.putMerch(merchId, merchUpdateRequestDTO);
+
+        String message = "Merch Updated Successfully";
+        return GlobalResponseBuilder.buildResponse(message, merchResponseDTO, HttpStatus.OK);
     }
 
     @PatchMapping("/update/{merchId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String,Object>> patchMerch(@PathVariable Long merchId, @RequestBody MerchUpdateRequestDTO merchUpdateRequestDTO) {
-        Map<String,Object> response = merchService.patchMerch(merchId, merchUpdateRequestDTO);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<GlobalResponseBuilder<MerchResponseDTO>> patchMerch(@PathVariable Long merchId, @RequestBody MerchUpdateRequestDTO merchUpdateRequestDTO) {
+        MerchResponseDTO merchResponseDTO = merchService.putMerch(merchId, merchUpdateRequestDTO);
+
+        String message = "Merch Updated Successfully";
+
+        return GlobalResponseBuilder.buildResponse(message, merchResponseDTO, HttpStatus.OK);
     }
     
 }
