@@ -1,8 +1,6 @@
  package org.csps.backend.service.impl;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 import org.csps.backend.domain.dtos.request.InvalidRequestException;
 import org.csps.backend.domain.dtos.request.MerchAlreadyExistException;
@@ -84,7 +82,7 @@ public class MerchServiceImpl implements MerchService {
 
     @Override
     @Transactional
-    public Map<String, Object> putMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) {
+    public MerchResponseDTO putMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) {
         // find the merch by id
         Merch foundMerch = merchRepository.findById(merchId)
                             .orElseThrow(() -> new MerchNotFoundException("Merch Not Found"));
@@ -117,15 +115,13 @@ public class MerchServiceImpl implements MerchService {
         merchRepository.save(foundMerch);
         
         // return the response
-
-        return Map.of("message", "Merch Updated Successfully",
-                        "timestamp", LocalDateTime.now(),
-                        "status", 200);    
-        }
+        MerchResponseDTO merchResponseDTO = merchMapper.toResponseDTO(foundMerch);
+        return merchResponseDTO;
+    }
 
     @Override
     @Transactional
-    public Map<String, Object> patchMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) {
+    public MerchResponseDTO patchMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) {
         // find the merch by id
         Merch foundMerch = merchRepository.findById(merchId)
                             .orElseThrow(() -> new MerchNotFoundException("Merch Not Found"));
@@ -152,10 +148,9 @@ public class MerchServiceImpl implements MerchService {
         // save the merch
         merchRepository.save(foundMerch);
 
+        MerchResponseDTO merchResponseDTO = merchMapper.toResponseDTO(foundMerch);
 
         // return the response
-        return Map.of("message", "Merch Updated Successfully",
-                        "timestamp", LocalDateTime.now(),
-                        "status", 200);
+        return merchResponseDTO;
     }
 }
