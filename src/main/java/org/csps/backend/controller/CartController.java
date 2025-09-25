@@ -1,7 +1,9 @@
 package org.csps.backend.controller;
 
 import org.csps.backend.domain.dtos.response.CartResponseDTO;
+import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.service.CartService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,8 +23,9 @@ public class CartController {
     // Get cart by student ID
     @GetMapping("")
     @PreAuthorize("hasRole('STUDENT')")
-    public ResponseEntity<CartResponseDTO> getCart(@AuthenticationPrincipal String studentId) {
+    public ResponseEntity<GlobalResponseBuilder<CartResponseDTO>> getCart(@AuthenticationPrincipal String studentId) {
         CartResponseDTO cart = cartService.getCartByStudentId(studentId);
-        return ResponseEntity.ok(cart);
+        
+        return GlobalResponseBuilder.buildResponse("Cart retrieved successfully", cart, HttpStatus.OK);
     }
 }
