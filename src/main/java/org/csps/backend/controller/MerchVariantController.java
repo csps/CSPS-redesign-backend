@@ -1,12 +1,13 @@
 package org.csps.backend.controller;
 
 import java.util.List;
-import java.util.Map;
 
 import org.csps.backend.domain.dtos.request.MerchVariantRequestDTO;
 import org.csps.backend.domain.dtos.request.MerchVariantUpdateRequestDTO;
+import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.MerchVariantResponseDTO;
 import org.csps.backend.service.MerchVariantService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -50,16 +51,22 @@ public class MerchVariantController {
 
     @PutMapping("/{merchId}/update")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String,Object>> putMerchVariant(@PathVariable Long merchId, @RequestBody MerchVariantUpdateRequestDTO merchVariantUpdateRequestDTO) {
-        Map<String,Object> response = merchVariantService.putMerchVariant(merchId, merchVariantUpdateRequestDTO);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<GlobalResponseBuilder<MerchVariantResponseDTO>> putMerchVariant(@PathVariable Long merchId, @RequestBody MerchVariantUpdateRequestDTO merchVariantUpdateRequestDTO) {
+        MerchVariantResponseDTO response = merchVariantService.putMerchVariant(merchId, merchVariantUpdateRequestDTO);
+
+        String message = "Merch Variant Updated Successfully";
+
+        return GlobalResponseBuilder.buildResponse(message, response, HttpStatus.OK);
     }
     
     @PatchMapping("/{merchId}/update")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String,Object>> patchMerchVariant(@PathVariable Long merchId, @RequestBody MerchVariantUpdateRequestDTO merchVariantUpdateRequestDTO) {
-        Map<String,Object> response = merchVariantService.patchMerchVariant(merchId, merchVariantUpdateRequestDTO);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<GlobalResponseBuilder<MerchVariantResponseDTO>> patchMerchVariant(@PathVariable Long merchId, @RequestBody MerchVariantUpdateRequestDTO merchVariantUpdateRequestDTO) {
+        MerchVariantResponseDTO response = merchVariantService.patchMerchVariant(merchId, merchVariantUpdateRequestDTO);
+
+        String message = "Merch Variant Updated Successfully";
+
+        return GlobalResponseBuilder.buildResponse(message, response, HttpStatus.OK);
     }
     
 }
