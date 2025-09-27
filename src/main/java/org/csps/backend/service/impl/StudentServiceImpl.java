@@ -59,7 +59,6 @@ public class StudentServiceImpl implements StudentService {
         Student student = studentMapper.toEntity(studentRequestDTO);
         student.setUserAccount(savedUserAccount);
     
-    
         // Persist Student
         student = studentRepository.save(student);
     
