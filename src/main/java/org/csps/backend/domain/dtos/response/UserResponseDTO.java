@@ -1,6 +1,6 @@
 package org.csps.backend.domain.dtos.response;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,7 +18,7 @@ public class UserResponseDTO {
     private String firstName;     // from profile
     private String lastName;      // from profile
     private String middleName;    // from profile
-    private Date birthDate;       // from profile
+    private LocalDate birthDate;       // from profile
     private String email;         // from profile
     private String role;          // from account
 }
