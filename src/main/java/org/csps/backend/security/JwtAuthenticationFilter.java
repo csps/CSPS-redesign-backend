@@ -60,23 +60,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     response.getWriter().write("Invalid token");
                     return;
                 }
-                
-                // If token is valid
 
+                // If token is valid
+                
                 // Load principal (with role + authorities)
                 UserPrincipal userPrincipal =
-                        (UserPrincipal) customUserDetailsService.loadUserByUsername(user.getUsername());
-
+                (UserPrincipal) customUserDetailsService.loadUserByUsername(user.getUsername());
+                
                 // Decide which domainId to use (Student/Admin)
-                Object domainId = switch (userPrincipal.getRole()) {
-                    case "STUDENT" -> userPrincipal.getStudentId();
-                    case "ADMIN" -> userPrincipal.getAdminId();
-                    default -> throw new RuntimeException("Role not recognized");
-                };
-
+                Object domainId;
+                if ("STUDENT".equalsIgnoreCase(userPrincipal.getRole())) {
+                    domainId = userPrincipal.getStudentId();
+                } else if ("ADMIN".equalsIgnoreCase(userPrincipal.getRole())) {
+                    domainId = userPrincipal.getAdminId();
+                } else {
+                    throw new RuntimeException("Role not recognized: " + userPrincipal.getRole());
+                }
+                System.out.println("DOMAIN ID: " + domainId);
+                
                 // Build authentication object
                 UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
+                new UsernamePasswordAuthenticationToken(
                                 domainId,
                                 null,
                                 userPrincipal.getAuthorities()
@@ -88,6 +92,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
         } catch (Exception ex) {
+            System.out.print(ex.getMessage());
             // Handle invalid/expired token
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Invalid or expired token");

@@ -8,7 +8,13 @@ import org.csps.backend.service.StudentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 
@@ -17,13 +23,13 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/v1/students")
 @RequiredArgsConstructor
 @CrossOrigin("http://localhost:5173/")
-@PreAuthorize("hasRole('ADMIN')")
+
 public class StudentController {
 
    private final StudentService studentService;
 
-
    @PostMapping()
+   @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
    public ResponseEntity<StudentResponseDTO> createStudent(@RequestBody StudentRequestDTO studentRequestDTO) {
        // create student
        StudentResponseDTO createdStudent = studentService.createStudentProfile(studentRequestDTO);
@@ -31,6 +37,7 @@ public class StudentController {
    }
 
    @GetMapping()
+   @PreAuthorize("hasRole('ADMIN')")
    public ResponseEntity<List<StudentResponseDTO>> getAllStudents() {
        // map all Students to StudentResponseDTO
        List<StudentResponseDTO> students = studentService.getAllStudents();
@@ -38,6 +45,7 @@ public class StudentController {
    }
 
    @GetMapping("/{studentId}")
+   @PreAuthorize("hasRole('ADMIN')")
    public ResponseEntity<StudentResponseDTO> getStudent(@PathVariable String studentId) {
        // should be map first to responseDTO
        StudentResponseDTO student = studentService.getStudentProfile(studentId);

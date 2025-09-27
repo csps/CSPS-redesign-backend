@@ -13,7 +13,7 @@ import org.csps.backend.exception.MissingFieldException;
 import org.csps.backend.exception.UserAlreadyExistsException;
 import org.csps.backend.exception.UserNotFoundException;
 import org.csps.backend.mapper.UserMapper;
-import org.csps.backend.repository.UserAccountRespository;
+import org.csps.backend.repository.UserAccountRepository;
 import org.csps.backend.repository.UserProfileRepository;
 import org.csps.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
-    private final UserAccountRespository userAccountRespository;
+    private final UserAccountRepository userAccountRepository;
     private final UserProfileRepository userProfileRepository;
     
     @Value("${csps.userNameformat}")
@@ -73,7 +73,7 @@ public class UserServiceImpl implements UserService {
             throw new MissingFieldException("Student ID cannot be empty!");
         }
 
-        if (userAccountRespository.existsByUsername(generatedUsername)) {
+        if (userAccountRepository.existsByUsername(generatedUsername)) {
             throw new UserAlreadyExistsException("Username already exists: " + generatedUsername);
         }
         if (userProfileRepository.existsByEmail(email)) {
@@ -85,23 +85,23 @@ public class UserServiceImpl implements UserService {
         UserProfile userProfile = userMapper.toUserProfile(userRequestDTO);
         UserProfile savedProfile = userProfileRepository.save(userProfile);
 
-        
-
         // Create UserAccount and link it to the saved profile
         UserAccount userAccount = userMapper.toUserAccount(userRequestDTO);
+
         userAccount.setUserProfile(savedProfile);
         userAccount.setPassword(String.format("%s-%s", passwordFormat, firstName)); // you’ll later hash this
         userAccount.setUsername(String.format("%s-%s", userNameFormat, studentId));
         userAccount.setRole(UserRole.STUDENT);
+        
 
-        return userAccountRespository.save(userAccount);
+        return userAccountRepository.save(userAccount);
     }
 
 
     // Get User By Id 
     @Override
     public UserResponseDTO getUserById(Long userId) {
-        UserAccount existingUser = userAccountRespository.findById(userId)
+        UserAccount existingUser = userAccountRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
         return userMapper.toResponseDTO(existingUser);
     }
@@ -109,7 +109,7 @@ public class UserServiceImpl implements UserService {
     // Get All Users
     @Override
     public List<UserResponseDTO> getAllUsers() {
-        return userAccountRespository.findAll().stream()
+        return userAccountRepository.findAll().stream()
                 .map(userMapper::toResponseDTO)
                 .toList();
     }
