@@ -1,11 +1,20 @@
 package org.csps.backend.service.impl;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
+import org.csps.backend.domain.dtos.request.InvalidRequestException;
 import org.csps.backend.domain.dtos.request.MerchVariantRequestDTO;
+import org.csps.backend.domain.dtos.request.MerchVariantUpdateRequestDTO;
 import org.csps.backend.domain.dtos.response.MerchVariantResponseDTO;
 import org.csps.backend.domain.entities.Merch;
 import org.csps.backend.domain.entities.MerchVariant;
+import org.csps.backend.domain.enums.ClothingSizing;
+import org.csps.backend.domain.enums.MerchType;
+import org.csps.backend.exception.MerchNotFoundException;
+import org.csps.backend.exception.MerchVariantAlreadyExisted;
+import org.csps.backend.exception.MerchVariantNotFoundException;
 import org.csps.backend.mapper.MerchVariantMapper;
 import org.csps.backend.repository.MerchRepository;
 import org.csps.backend.repository.MerchVariantRepository;
@@ -78,4 +87,127 @@ public class MerchVariantServiceImpl implements MerchVariantService {
 
         return merchVariantMapper.toResponseDTO(saved);
     }
+
+    @Override
+    public List<MerchVariantResponseDTO> getMerchVariantByMerchId(Long merchId) {
+        return merchVariantRepository.findByMerchMerchId(merchId).stream()
+                .map(merchVariantMapper::toResponseDTO)
+                .toList();
+    }
+
+    @Override
+    public Map<String, Object> putMerchVariant(Long merchId, MerchVariantUpdateRequestDTO merchVariantRequestDTO) {
+        String color = merchVariantRequestDTO.getColor();
+        ClothingSizing clothingSizing = merchVariantRequestDTO.getSize();
+        Double price = merchVariantRequestDTO.getPrice();
+        Integer stockQuantity = merchVariantRequestDTO.getStockQuantity();
+
+        if (color.isEmpty() || clothingSizing == null || price == null || stockQuantity == null) {
+            throw new InvalidRequestException("Invalid Credential");
+        }
+        
+        Merch merch = merchRepository.findById(merchId)
+                      .orElseThrow(() -> new MerchNotFoundException("Merch Not Found"));
+
+        Long merchVariantId = merchVariantRequestDTO.getMerchVariantId();
+
+        MerchVariant merchVariant = merchVariantRepository.findById(merchVariantId)
+                .orElseThrow(() -> new MerchVariantNotFoundException("Merch Variant Not Found"));
+
+
+        MerchType merchType = merch.getMerchType();
+
+        boolean merchVariantAlreadyExisted = merchVariantRepository.existsByMerchAndColorAndSize(merch, color, clothingSizing);
+
+        if (merchVariantAlreadyExisted) {
+            throw new MerchVariantAlreadyExisted("Merch Variant Already Existed");
+        }
+
+        switch (merchType) {
+            case CLOTHING -> {
+                if (clothingSizing == null || price == null || stockQuantity == null) {
+                    throw new InvalidRequestException("Invalid Credential");
+                }
+
+            }
+            case PIN, STICKER, KEYCHAIN -> {
+                if (price == null || stockQuantity == null) {
+                    throw new InvalidRequestException("Invalid Credential");
+                }
+            }
+            default -> throw new InvalidRequestException("Invalid Credential");
+        }
+        
+        merchVariant.setColor(color);
+        merchVariant.setSize(clothingSizing);
+        merchVariant.setPrice(price);
+        merchVariant.setStockQuantity(stockQuantity);
+
+        merchVariantRepository.save(merchVariant);
+
+        return Map.of("message", "Merch Variant Updated Successfully",
+                        "timestamp", LocalDateTime.now(),
+                        "status", 200);
+
+        
+    }
+
+       @Override
+    public Map<String, Object> patchMerchVariant(Long merchId, MerchVariantUpdateRequestDTO merchVariantRequestDTO) {
+        String color = merchVariantRequestDTO.getColor();
+        ClothingSizing clothingSizing = merchVariantRequestDTO.getSize();
+        Double price = merchVariantRequestDTO.getPrice();
+        Integer stockQuantity = merchVariantRequestDTO.getStockQuantity();
+        
+        Merch merch = merchRepository.findById(merchId)
+                      .orElseThrow(() -> new MerchNotFoundException("Merch Not Found"));
+
+        Long merchVariantId = merchVariantRequestDTO.getMerchVariantId();
+
+        MerchVariant merchVariant = merchVariantRepository.findById(merchVariantId)
+                .orElseThrow(() -> new MerchVariantNotFoundException("Merch Variant Not Found"));
+
+
+        MerchType merchType = merch.getMerchType();
+
+        boolean merchVariantAlreadyExisted = merchVariantRepository.existsByMerchAndColorAndSize(merch, color, clothingSizing);
+
+        if (merchVariantAlreadyExisted) {
+            throw new MerchVariantAlreadyExisted("Merch Variant Already Existed");
+        }
+
+        switch (merchType) {
+            case CLOTHING -> {
+                if (clothingSizing == null || price == null || stockQuantity == null) {
+                    throw new InvalidRequestException("Invalid Credential");
+                }
+
+            }
+            case PIN, STICKER, KEYCHAIN -> {
+                if (clothingSizing != null) {
+                    throw new InvalidRequestException("Invalid Credential");
+                }
+                if (price == null || stockQuantity == null) {
+                    throw new InvalidRequestException("Invalid Credential");
+                }
+            }
+            default -> throw new InvalidRequestException("Invalid Credential");
+        }
+        
+        merchVariant.setColor(color);
+        merchVariant.setSize(clothingSizing);
+        merchVariant.setPrice(price);
+        merchVariant.setStockQuantity(stockQuantity);
+
+        merchVariantRepository.save(merchVariant);
+
+        return Map.of("message", "Merch Variant Updated Successfully",
+                        "timestamp", LocalDateTime.now(),
+                        "status", 200);
+
+        
+    }
+
+
+
 }

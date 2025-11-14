@@ -9,7 +9,6 @@ import org.csps.backend.domain.entities.UserAccount;
 import org.csps.backend.domain.entities.UserProfile;
 import org.csps.backend.domain.enums.UserRole;
 import org.csps.backend.exception.EmailAlreadyExistsException;
-import org.csps.backend.exception.InvalidEmailFormatException;
 import org.csps.backend.exception.MissingFieldException;
 import org.csps.backend.exception.UserAlreadyExistsException;
 import org.csps.backend.exception.UserNotFoundException;
