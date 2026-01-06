@@ -1,11 +1,10 @@
 package org.csps.backend.service;
 
+import java.util.List;
+
 import org.csps.backend.domain.dtos.request.StudentRequestDTO;
 import org.csps.backend.domain.dtos.request.UserRequestDTO;
 import org.csps.backend.domain.dtos.response.UserResponseDTO;
-
-import java.util.List;
-
 import org.csps.backend.domain.entities.UserAccount;
 
 public interface UserService {
