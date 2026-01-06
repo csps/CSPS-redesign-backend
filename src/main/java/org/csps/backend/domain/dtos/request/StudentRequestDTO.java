@@ -24,7 +24,7 @@ public class StudentRequestDTO {
     private Byte yearLevel;
     
     @NotNull(message = "User Info is required")
-    @JsonAlias("user_profile")
+    @JsonAlias("userProfile")
     private UserRequestDTO userRequestDTO;
 
 }

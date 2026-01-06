@@ -77,9 +77,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService{
                         return null; 
                     }
                     UserAccount user = token.getUserAccount();
-                    return jwtService.generateAccessToken(
-                            new SignInCredentialRequestDTO(user.getUsername(), user.getPassword())
-                    );
+                    return jwtService.generateAccessToken(user);
                 });
     }
 

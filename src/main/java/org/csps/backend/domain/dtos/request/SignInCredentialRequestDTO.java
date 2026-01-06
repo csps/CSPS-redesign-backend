@@ -10,6 +10,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class SignInCredentialRequestDTO {
-    private String username;
+    private String studentId;
     private String password;
 }

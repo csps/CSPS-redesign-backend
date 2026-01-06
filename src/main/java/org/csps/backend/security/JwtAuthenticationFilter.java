@@ -50,12 +50,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UserAccount user = userService.findById(userId)
                         .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-                // Build credential DTO for token validation
-                SignInCredentialRequestDTO requestCredential =
-                        new SignInCredentialRequestDTO(user.getUsername(), user.getPassword());
+            
 
                 // Validate token
-                if (!jwtService.isTokenValid(token, requestCredential)) {
+                if (!jwtService.isTokenValid(token, user)) {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.getWriter().write("Invalid token");
                     return;

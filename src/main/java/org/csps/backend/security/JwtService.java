@@ -34,7 +34,6 @@ public class JwtService {
     @Value("${csps.jwtAccessToken.expireMs}")
     private long jwtAccessTokenExpirationMs; // Expiration time in ms
 
-    private final UserAccountService userAccountService;
     private final StudentService studentService;
     private final AdminService adminService;
 
@@ -68,24 +67,22 @@ public class JwtService {
     }
 
     // Core method: build JWT with claims depending on role (Student/Admin)
-    private String generateAccessToken(Map<String, Object> customClaim, SignInCredentialRequestDTO studentRequest) {
-        // Load account
-        UserAccount account = userAccountService.findByUsername(studentRequest.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("UserAccount not found"));
+    private String generateAccessToken(Map<String, Object> customClaim, UserAccount user) {
+        
 
         // Add base claims
-        customClaim.put("username", account.getUsername());
-        customClaim.put("role", account.getRole().toString());
-        customClaim.put("profileId", account.getUserProfile().getUserId());
+        customClaim.put("username", user.getUsername());
+        customClaim.put("role", user.getRole().toString());
+        customClaim.put("profileId", user.getUserProfile().getUserId());
 
         // Add role-specific claims
-        if (account.getRole() == UserRole.STUDENT) {
-            Student student = studentService.findByAccountId(account.getUserAccountId())
+        if (user.getRole() == UserRole.STUDENT) {
+            Student student = studentService.findByAccountId(user.getUserAccountId())
                     .orElseThrow(() -> new RuntimeException("Student record not found"));
             customClaim.put("studentId", student.getStudentId());
             customClaim.put("yearLevel", student.getYearLevel());
-        } else if (account.getRole() == UserRole.ADMIN) {
-            Admin admin = adminService.findByAccountId(account.getUserAccountId())
+        } else if (user.getRole() == UserRole.ADMIN) {
+            Admin admin = adminService.findByAccountId(user.getUserAccountId())
                     .orElseThrow(() -> new RuntimeException("Admin record not found"));
             customClaim.put("adminId", admin.getAdminId());
             customClaim.put("position", admin.getPosition().name());
@@ -95,7 +92,7 @@ public class JwtService {
         // Generate and sign token
         return Jwts.builder()
                 .claims(customClaim)
-                .subject(String.valueOf(account.getUserAccountId())) // subject = accountId
+                .subject(String.valueOf(user.getUserAccountId())) // subject = accountId
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtAccessTokenExpirationMs))
                 .signWith(getSignInKey())
@@ -103,17 +100,14 @@ public class JwtService {
     }
 
     // Generate token with empty claims
-    public String generateAccessToken(SignInCredentialRequestDTO studentRequest) {
-        return generateAccessToken(new HashMap<>(), studentRequest);
+    public String generateAccessToken(UserAccount user) {
+        return generateAccessToken(new HashMap<>(), user);
     }
 
     // Validate token: check subject matches and not expired
-    public Boolean isTokenValid(String token, SignInCredentialRequestDTO studentRequest) {
+    public Boolean isTokenValid(String token, UserAccount user) {
         final Long usernameId = extractUsernameId(token);
 
-        UserAccount userEntity = userAccountService.findByUsername(studentRequest.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
-        return (usernameId.equals(userEntity.getUserAccountId()) && !isTokenExpired(token));
+        return (usernameId.equals(user.getUserAccountId()) && !isTokenExpired(token));
     }
 }
