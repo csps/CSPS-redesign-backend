@@ -38,6 +38,11 @@ public class CartItemServiceImpl implements CartItemService {
         MerchVariant merchVariant = merchVariantRepository.findById(merchVariantId)
                                     .orElseThrow(() -> new MerchVariantNotFoundException("Merch Variant Not Found!"));
 
+        // Check if quantity is less than or equal to stock
+        if (quantity > merchVariant.getStockQuantity()) {
+            throw new IllegalArgumentException("Requested quantity (" + quantity + ") exceeds available stock (" + merchVariant.getStockQuantity() + ")");
+        }
+
         Cart cart = cartRepository.findById(cartId)
         .orElseThrow(() -> new CartNotFoundException("Cart not found!"));
 
@@ -51,8 +56,14 @@ public class CartItemServiceImpl implements CartItemService {
                         .merchVariant(merchVariant)
                         .build());
 
+        // Check if total quantity (existing + new) exceeds stock
+        int totalQuantity = cartItem.getQuantity() + quantity;
+        if (totalQuantity > merchVariant.getStockQuantity()) {
+            throw new IllegalArgumentException("Total quantity (" + totalQuantity + ") exceeds available stock (" + merchVariant.getStockQuantity() + ")");
+        }
+
         // Update quantity
-        cartItem.setQuantity(cartItem.getQuantity() + quantity);
+        cartItem.setQuantity(totalQuantity);
 
         // Save
         cartItem = cartItemRepository.save(cartItem);
