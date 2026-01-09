@@ -5,7 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import org.csps.backend.domain.entities.composites.PurchaseItemId;
+import org.csps.backend.domain.enums.PurchaseItemStatus;
 
 @Entity
 @Table(name = "purchase_items")
@@ -30,4 +32,10 @@ public class PurchaseItem {
 
     @Column(nullable = false)
     private int quantity;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PurchaseItemStatus status;
+
+    
 }
