@@ -22,7 +22,9 @@ public class PurchaseResponseDTO {
     @JsonAlias("purchase_items")
     private List<PurchaseItemResponseDTO> items;
     private LocalDateTime purchasedAt;
+    
     private Double totalPrice;
     private Double receivedMoney;
+
 
 }
