@@ -25,6 +25,9 @@ public class MerchRequestDTO {
     
     @NotNull(message = "Merchandise type is required")
     private MerchType merchType;
+
+    @NotNull(message = "Price is required")
+    private Double price;
     
     @JsonProperty("variants")
     @Valid

@@ -8,6 +8,7 @@ import lombok.Data;
 public class MerchVariantUpdateRequestDTO {
     private Long merchVariantId;
     private String color;
+    private String design;
     private ClothingSizing size;
     private Double price;
     private Integer stockQuantity;
