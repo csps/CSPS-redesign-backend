@@ -11,4 +11,5 @@ public class MerchVariantRequestDTO {
     private ClothingSizing size;
     private Double price;
     private Integer stockQuantity;
+    private String s3ImageKey;     // S3 object key (optional - image uploaded separately)
 }

@@ -20,5 +20,6 @@ public class MerchVariantResponseDTO {
     private Integer stockQuantity;
 
     private Long merchId; // reference to MerchResponseDto (to avoid nesting)
-    
+
+    private String s3ImageKey;     // S3 object key - frontend constructs URL as {S3_BASE_URL}/{s3ImageKey}
 }

@@ -1,5 +1,6 @@
 package org.csps.backend.service.impl;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.csps.backend.domain.dtos.request.InvalidRequestException;
@@ -17,7 +18,9 @@ import org.csps.backend.mapper.MerchVariantMapper;
 import org.csps.backend.repository.MerchRepository;
 import org.csps.backend.repository.MerchVariantRepository;
 import org.csps.backend.service.MerchVariantService;
+import org.csps.backend.service.S3Service;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,18 +31,39 @@ public class MerchVariantServiceImpl implements MerchVariantService {
     private final MerchVariantRepository merchVariantRepository;
     private final MerchVariantMapper merchVariantMapper;
     private final MerchRepository merchRepository;
+    private final S3Service s3Service;
 
     @Override
     public MerchVariantResponseDTO addMerchVariant(MerchVariantRequestDTO dto) {
         Merch merch = merchRepository.findById(dto.getMerchId())
                 .orElseThrow(() -> new IllegalArgumentException("Merch not found"));
 
-
-
         MerchVariant merchVariant = merchVariantMapper.toEntity(dto);
         merchVariant.setMerch(merch);
 
         MerchVariant saved = merchVariantRepository.save(merchVariant);
+
+        return merchVariantMapper.toResponseDTO(saved);
+    }
+
+    @Override
+    public MerchVariantResponseDTO addMerchVariantWithImage(MerchVariantRequestDTO dto, MultipartFile imageFile) throws IOException {
+        if (imageFile == null || imageFile.isEmpty()) {
+            throw new IllegalArgumentException("Image file is required");
+        }
+
+        // First add the variant
+        Merch merch = merchRepository.findById(dto.getMerchId())
+                .orElseThrow(() -> new IllegalArgumentException("Merch not found"));
+
+        MerchVariant merchVariant = merchVariantMapper.toEntity(dto);
+        merchVariant.setMerch(merch);
+        MerchVariant saved = merchVariantRepository.save(merchVariant);
+
+        // Then upload the image
+        String s3ImageKey = s3Service.uploadFile(imageFile, "merchVariant/" + saved.getMerchVariantId());
+        saved.setS3ImageKey(s3ImageKey);
+        saved = merchVariantRepository.save(saved);
 
         return merchVariantMapper.toResponseDTO(saved);
     }
@@ -201,5 +225,26 @@ public class MerchVariantServiceImpl implements MerchVariantService {
         MerchVariantResponseDTO merchVariantResponseDTO = merchVariantMapper.toResponseDTO(merchVariant);
 
         return merchVariantResponseDTO;        
+    }
+
+    @Override
+    public String uploadVariantImage(Long merchVariantId, MultipartFile file) throws IOException {
+        // Verify variant exists
+        MerchVariant variant = merchVariantRepository.findById(merchVariantId)
+                .orElseThrow(() -> new MerchVariantNotFoundException("Merch Variant not found"));
+        
+        // Delete old image if exists
+        if (variant.getS3ImageKey() != null && !variant.getS3ImageKey().isEmpty()) {
+            s3Service.deleteFile(variant.getS3ImageKey());
+        }
+        
+        // Upload new image to S3
+        String s3ImageKey = s3Service.uploadFile(file, "merchVariant/" + merchVariantId);
+        
+        // Update variant with new S3 key
+        variant.setS3ImageKey(s3ImageKey);
+        merchVariantRepository.save(variant);
+        
+        return s3ImageKey;
     }
 }

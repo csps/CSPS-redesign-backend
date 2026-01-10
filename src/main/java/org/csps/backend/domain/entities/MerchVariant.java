@@ -45,4 +45,8 @@ public class MerchVariant {
 
     @Column(nullable = false)
     private Integer stockQuantity;
+
+
+    @Column(nullable = true)
+    private String s3ImageKey;  // S3 object key - URL constructed as {S3_BASE_URL}/{s3ImageKey}
 }
