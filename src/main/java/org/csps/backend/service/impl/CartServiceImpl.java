@@ -2,8 +2,8 @@ package org.csps.backend.service.impl;
 
 import org.csps.backend.domain.dtos.response.CartResponseDTO;
 import org.csps.backend.domain.entities.Cart;
-import org.csps.backend.domain.entities.Student;
 import org.csps.backend.exception.CartNotFoundException;
+import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.mapper.CartMapper;
 import org.csps.backend.repository.CartRepository;
 import org.csps.backend.service.CartService;
@@ -21,6 +21,10 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public CartResponseDTO getCartByStudentId(String studentId) {
+        if (studentId == null || studentId.isEmpty()) {
+            throw new InvalidRequestException("Student ID is required");
+        }
+        
         Cart cart = cartRepository.findById(studentId)
                 .orElseThrow(() -> new CartNotFoundException("Cart not found for student: " + studentId));
 
@@ -31,12 +35,59 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public Cart createCart(String studentId) {
         if (studentId == null || studentId.isEmpty()) {
-            throw new IllegalArgumentException("Student ID cannot be null or empty");
+            throw new InvalidRequestException("Student ID cannot be null or empty");
         }
+        
+        // Check if cart already exists
+        if (cartRepository.existsById(studentId)) {
+            throw new InvalidRequestException("Cart already exists for this student");
+        }
+        
         Cart cart = Cart.builder()
                 .cartId(studentId)
                 .build();
         return cartRepository.save(cart);
     }
-}
 
+    @Override
+    public Double getCartTotal(String studentId) {
+        if (studentId == null || studentId.isEmpty()) {
+            throw new InvalidRequestException("Student ID is required");
+        }
+        
+        Cart cart = cartRepository.findById(studentId)
+                .orElseThrow(() -> new CartNotFoundException("Cart not found"));
+
+        return cart.getItems().stream()
+                .mapToDouble(item -> item.getQuantity() * item.getMerchVariantItem().getPrice())
+                .sum();
+    }
+
+    @Override
+    public int getCartItemCount(String studentId) {
+        if (studentId == null || studentId.isEmpty()) {
+            throw new InvalidRequestException("Student ID is required");
+        }
+        
+        Cart cart = cartRepository.findById(studentId)
+                .orElseThrow(() -> new CartNotFoundException("Cart not found"));
+
+        return cart.getItems().stream()
+                .mapToInt(item -> item.getQuantity())
+                .sum();
+    }
+
+    @Override
+    @Transactional
+    public void clearCart(String studentId) {
+        if (studentId == null || studentId.isEmpty()) {
+            throw new InvalidRequestException("Student ID is required");
+        }
+        
+        Cart cart = cartRepository.findById(studentId)
+                .orElseThrow(() -> new CartNotFoundException("Cart not found"));
+
+        cart.getItems().clear();
+        cartRepository.save(cart);
+    }
+}
