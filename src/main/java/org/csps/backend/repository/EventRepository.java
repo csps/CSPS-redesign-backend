@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findByEventDate(LocalDate eventDate);
+    Event findByS3ImageKey(String s3ImageKey);
     @Query("""
             SELECT CASE WHEN COUNT(e) > 0 THEN TRUE ELSE FALSE END
             FROM Event e
