@@ -57,16 +57,5 @@ public class MerchVariant {
 
     @Column(nullable = false)
     private String s3ImageKey;  // S3 object key - REQUIRED, every variant must have an image
-
-    public List<ClothingSizing> getAvailableSizes() {
-        if (merchVariantItems == null) return Collections.emptyList();
-        return merchVariantItems.stream()
-            .filter(item -> item.getStockQuantity() > 0)
-            .map(MerchVariantItem::getSize)
-            .filter(Objects::nonNull)
-            .distinct()
-            .toList();
-    }
-
     
 }

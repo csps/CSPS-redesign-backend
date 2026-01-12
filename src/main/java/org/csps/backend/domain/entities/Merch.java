@@ -6,10 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.csps.backend.domain.enums.MerchType;
-import org.csps.backend.domain.enums.ClothingSizing;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Builder
 @Entity
