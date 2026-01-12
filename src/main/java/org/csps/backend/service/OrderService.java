@@ -1,19 +1,36 @@
-// package org.csps.backend.service;
+package org.csps.backend.service;
 
-// import java.util.List;
+import java.util.List;
 
-// import org.csps.backend.domain.dtos.request.OrderPostRequestDTO;
-// import org.csps.backend.domain.dtos.request.PatchOrderRequestDTO;
-// import org.csps.backend.domain.dtos.response.OrderResponseDTO;
-// import org.csps.backend.domain.enums.OrderStatus;
+import org.csps.backend.domain.dtos.response.OrderResponseDTO;
+import org.csps.backend.domain.dtos.request.OrderPostRequestDTO;
 
-// public interface OrderService {
+public interface OrderService {
 
-//     OrderResponseDTO postOrder(String studentId, OrderPostRequestDTO orderPostRequestDTO);
-//     List<OrderResponseDTO> getAllOrders();
-//     OrderResponseDTO getOrderById(Long orderId);
-//     OrderResponseDTO deleteOrder(Long orderId);
-//     OrderResponseDTO patchOrder(Long orderId, PatchOrderRequestDTO patchOrderRequestDTO);
-//     List<OrderResponseDTO> getOrdersByStudentId(String studentId);
-//     List<OrderResponseDTO> getOrdersByOrderStatus(OrderStatus orderStatus);
-// }
+    /**
+     * Create a new order for a student.
+     * This creates an Order and delegates OrderItem creation to OrderItemService.
+     */
+    OrderResponseDTO createOrder(String studentId, OrderPostRequestDTO orderPostRequestDTO);
+    
+    /**
+     * Get all orders (admin only).
+     */
+    List<OrderResponseDTO> getAllOrders();
+    
+    /**
+     * Get order by ID.
+     */
+    OrderResponseDTO getOrderById(Long orderId);
+    
+    /**
+     * Get all orders for a specific student.
+     */
+    List<OrderResponseDTO> getOrdersByStudentId(String studentId);
+    
+    /**
+     * Delete order and all its items.
+     */
+    void deleteOrder(Long orderId);
+}
+
