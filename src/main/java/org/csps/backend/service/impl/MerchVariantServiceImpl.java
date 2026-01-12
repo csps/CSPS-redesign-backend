@@ -161,22 +161,6 @@ public class MerchVariantServiceImpl implements MerchVariantService {
         return s3ImageKey;
     }
 
-    @Override
-    public List<ClothingSizing> getAvailableSizesForVariant(Long merchVariantId) {
-        // Fetch the variant
-        MerchVariant variant = merchVariantRepository.findById(merchVariantId)
-                .orElseThrow(() -> new MerchVariantNotFoundException("MerchVariant not found with id: " + merchVariantId));
-
-        // Get the merch to check if it's a clothing type
-        Merch merch = variant.getMerch();
-        if (merch.getMerchType() != MerchType.CLOTHING) {
-            throw new InvalidRequestException("Available sizes are only for clothing merchandise types");
-        }
-
-        // Return available sizes from the variant's items
-        return variant.getAvailableSizes();
-    }
-
 }
 
 

@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.csps.backend.domain.dtos.request.MerchVariantRequestDTO;
 import org.csps.backend.domain.dtos.response.MerchVariantResponseDTO;
-import org.csps.backend.domain.enums.ClothingSizing;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -40,17 +39,4 @@ public interface MerchVariantService {
      * Upload/update image for a variant.
      */
     String uploadVariantImage(Long merchVariantId, MultipartFile file) throws IOException;
-
-    /**
-     * Get available sizes for a merchandise variant (clothing only).
-     * Returns sizes with stock quantity > 0.
-     */
-    List<ClothingSizing> getAvailableSizesForVariant(Long merchVariantId);
-
-    /**
-     * Get available sizes with stock quantities for a merchandise variant (clothing only).
-     * Returns sizes and their respective stock quantities where stock > 0.
-     */
-
-  
 }
