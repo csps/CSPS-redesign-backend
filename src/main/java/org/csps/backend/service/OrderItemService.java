@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.csps.backend.domain.dtos.request.OrderItemRequestDTO;
 import org.csps.backend.domain.dtos.response.OrderItemResponseDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface OrderItemService {
     
@@ -21,6 +23,11 @@ public interface OrderItemService {
      * Get all order items for a specific order.
      */
     List<OrderItemResponseDTO> getOrderItemsByOrderId(Long orderId);
+    
+    /**
+     * Get paginated order items for a specific order.
+     */
+    Page<OrderItemResponseDTO> getOrderItemsByOrderIdPaginated(Long orderId, Pageable pageable);
   
     /**
      * Delete order item.

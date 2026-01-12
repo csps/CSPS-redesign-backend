@@ -4,19 +4,26 @@ import java.util.List;
 
 import org.csps.backend.domain.dtos.response.OrderResponseDTO;
 import org.csps.backend.domain.dtos.request.OrderPostRequestDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface OrderService {
 
     /**
-     * Create a new order for a student.
-     * This creates an Order and delegates OrderItem creation to OrderItemService.
+     * Create one or more orders for a student.
+     * This creates Order(s) and delegates OrderItem creation to OrderItemService.
      */
-    OrderResponseDTO createOrder(String studentId, OrderPostRequestDTO orderPostRequestDTO);
+     OrderResponseDTO createOrder(String studentId, OrderPostRequestDTO orderRequests);
     
     /**
      * Get all orders (admin only).
      */
     List<OrderResponseDTO> getAllOrders();
+    
+    /**
+     * Get paginated orders (admin only).
+     */
+    Page<OrderResponseDTO> getAllOrdersPaginated(Pageable pageable);
     
     /**
      * Get order by ID.
@@ -27,6 +34,11 @@ public interface OrderService {
      * Get all orders for a specific student.
      */
     List<OrderResponseDTO> getOrdersByStudentId(String studentId);
+    
+    /**
+     * Get paginated orders for a specific student.
+     */
+    Page<OrderResponseDTO> getOrdersByStudentIdPaginated(String studentId, Pageable pageable);
     
     /**
      * Delete order and all its items.
