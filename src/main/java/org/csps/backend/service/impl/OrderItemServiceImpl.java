@@ -16,6 +16,8 @@ import org.csps.backend.repository.OrderItemRepository;
 import org.csps.backend.repository.OrderRepository;
 import org.csps.backend.repository.MerchVariantItemRepository;
 import org.csps.backend.service.OrderItemService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
@@ -45,9 +47,18 @@ public class OrderItemServiceImpl implements OrderItemService {
         MerchVariantItem merchVariantItem = merchVariantItemRepository.findById(orderItemRequestDTO.getMerchVariantItemId())
             .orElseThrow(() -> new InvalidRequestException("MerchVariantItem not found"));
         
+        // Extract merchVariantId from MerchVariantItem
+        Long merchVariantId = getMerchVariantIdFromItem(merchVariantItem);
+        
         // Validate quantity
         if (orderItemRequestDTO.getQuantity() == null || orderItemRequestDTO.getQuantity() <= 0) {
             throw new InvalidRequestException("Quantity must be greater than 0");
+        }
+        
+        // Validate sufficient stock
+        if (orderItemRequestDTO.getQuantity() > merchVariantItem.getStockQuantity()) {
+            throw new InvalidRequestException("Insufficient stock. Available: " + merchVariantItem.getStockQuantity() + 
+                    ", Requested: " + orderItemRequestDTO.getQuantity());
         }
         
         // Validate price
@@ -56,13 +67,35 @@ public class OrderItemServiceImpl implements OrderItemService {
         }
         
         // Create order item
-        OrderItem orderItem = orderItemMapper.toEntity(orderItemRequestDTO);
-
-        orderItem.setOrder(order);
-        orderItem.setMerchVariantItem(merchVariantItem);
+        OrderItem orderItem = OrderItem.builder()
+            .order(order)
+            .merchVariantItem(merchVariantItem)
+            .quantity(orderItemRequestDTO.getQuantity())
+            .priceAtPurchase(orderItemRequestDTO.getPriceAtPurchase())
+            .updatedAt(LocalDateTime.now())
+            .build();
         
         OrderItem savedOrderItem = orderItemRepository.save(orderItem);
+        
+        // Deduct stock from MerchVariantItem
+        int newStockQuantity = merchVariantItem.getStockQuantity() - orderItemRequestDTO.getQuantity();
+        merchVariantItem.setStockQuantity(newStockQuantity);
+        merchVariantItemRepository.save(merchVariantItem);
+        
         return orderItemMapper.toResponseDTO(savedOrderItem);
+    }
+    
+    /**
+     * Helper method to extract MerchVariantId from MerchVariantItem
+     */
+    private Long getMerchVariantIdFromItem(MerchVariantItem merchVariantItem) {
+        if (merchVariantItem == null) {
+            throw new InvalidRequestException("MerchVariantItem is null");
+        }
+        if (merchVariantItem.getMerchVariant() == null) {
+            throw new InvalidRequestException("MerchVariant is null for MerchVariantItem");
+        }
+        return merchVariantItem.getMerchVariant().getMerchVariantId();
     }
     
     @Override
@@ -92,6 +125,21 @@ public class OrderItemServiceImpl implements OrderItemService {
         return orderItems.stream()
             .map(orderItemMapper::toResponseDTO)
             .toList();
+    }
+    
+    @Override
+    public Page<OrderItemResponseDTO> getOrderItemsByOrderIdPaginated(Long orderId, Pageable pageable) {
+        if (orderId == null || orderId <= 0) {
+            throw new InvalidRequestException("Invalid order ID");
+        }
+        
+        // Verify order exists
+        if (!orderRepository.existsById(orderId)) {
+            throw new OrderNotFoundException("Order not found");
+        }
+        
+        Page<OrderItem> orderItems = orderItemRepository.findByOrderOrderId(orderId, pageable);
+        return orderItems.map(orderItemMapper::toResponseDTO);
     }
     
     @Override
