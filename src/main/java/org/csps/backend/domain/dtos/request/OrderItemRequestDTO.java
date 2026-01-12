@@ -16,6 +16,8 @@ public class OrderItemRequestDTO {
     @NotNull(message = "Order ID is required")
     private Long orderId;
     
+    private Long merchVariantId;
+
     @NotNull(message = "MerchVariantItem ID is required")
     private Long merchVariantItemId;
     

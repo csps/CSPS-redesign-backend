@@ -22,4 +22,6 @@ public class CartItemResponseDTO {
     private Double unitPrice;        // Current price
     private int quantity;
     private Double subTotal;         // unitPrice * quantity
+
+    private MerchType merchType;
 }

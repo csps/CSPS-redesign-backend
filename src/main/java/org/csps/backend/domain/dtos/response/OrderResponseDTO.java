@@ -3,6 +3,9 @@ package org.csps.backend.domain.dtos.response;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.csps.backend.domain.enums.MerchType;
+import org.csps.backend.domain.enums.OrderStatus;
+
 import com.fasterxml.jackson.annotation.JsonAlias;
 
 import lombok.AllArgsConstructor;
@@ -25,6 +28,9 @@ public class OrderResponseDTO {
     @JsonAlias("order_date")
     private LocalDate orderDate;
     
+    private OrderStatus orderStatus;
+
+
     @JsonAlias("order_items")
     private List<OrderItemResponseDTO> orderItems;
 }

@@ -2,6 +2,8 @@ package org.csps.backend.domain.dtos.response;
 
 import java.time.LocalDateTime;
 
+import org.csps.backend.domain.enums.MerchType;
+
 import com.fasterxml.jackson.annotation.JsonAlias;
 
 import lombok.AllArgsConstructor;
@@ -32,6 +34,8 @@ public class OrderItemResponseDTO {
     private Double totalPrice;
     
     private String s3ImageKey;
+
+    private MerchType merchType;
     
     private LocalDateTime createdAt;
         
