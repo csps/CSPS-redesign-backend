@@ -6,6 +6,9 @@ import org.csps.backend.domain.dtos.request.OrderItemRequestDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.OrderItemResponseDTO;
 import org.csps.backend.service.OrderItemService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -61,6 +64,19 @@ public class OrderItemController {
             @RequestParam Long orderId) {
         List<OrderItemResponseDTO> responseDTOs = orderItemService.getOrderItemsByOrderId(orderId);
         return GlobalResponseBuilder.buildResponse("Order items retrieved successfully", responseDTOs, HttpStatus.OK);
+    }
+    
+    /**
+     * Get paginated order items for a specific order.
+     * Query params: orderId, page (0-indexed), size (default 20), sort (e.g., "createdAt,desc")
+     */
+    @GetMapping("/paginated")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('ADMIN')")
+    public ResponseEntity<GlobalResponseBuilder<List<OrderItemResponseDTO>>> getOrderItemsByOrderIdPaginated(
+            @RequestParam Long orderId,
+            Pageable pageable) {
+        Page<OrderItemResponseDTO> page = orderItemService.getOrderItemsByOrderIdPaginated(orderId, pageable);
+        return GlobalResponseBuilder.buildResponse("Order items retrieved successfully", page.getContent(), HttpStatus.OK);
     }
     
     /**
