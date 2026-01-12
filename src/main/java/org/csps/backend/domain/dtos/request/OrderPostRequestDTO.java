@@ -8,8 +8,8 @@ import lombok.Data;
 public class OrderPostRequestDTO {
     private String studentId;
     
-    @NotNull(message = "MerchVariantId is required")
-    private Long merchVariantId;
+    @NotNull(message = "MerchVariantItemId is required")
+    private Long merchVariantItemId;
     
     @Min(value = 1, message = "Quantity must be at least 1")
     private int quantity;    

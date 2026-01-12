@@ -11,20 +11,22 @@
     public interface OrderMapper {
 
         @Mapping(source = "orderId", target = "orderId")
-        @Mapping(source = "merchVariant.merch.merchName", target = "merchVariantName")
-        @Mapping(source = "merchVariant.color", target = "merchVariantColor")
-        @Mapping(source = "merchVariant.size", target = "merchVariantSize")
+        @Mapping(source = "merchVariantItem.merchVariant.merch.merchName", target = "merchVariantName")
+        @Mapping(source = "merchVariantItem.merchVariant.color", target = "merchVariantColor")
+        @Mapping(source = "merchVariantItem.size", target = "merchVariantSize")
         @Mapping(source = "quantity", target = "quantity")
         @Mapping(target = "studentName", expression = "java(getStudentName(order))")
         @Mapping(source = "totalPrice", target = "totalPrice")
         @Mapping(source = "orderStatus", target = "orderStatus")
         OrderResponseDTO toResponseDTO(Order order);
 
-        @Mapping(source = "merchVariantId", target = "merchVariant.merchVariantId")
+        @Mapping(target = "merchVariantItem", ignore = true)
         @Mapping(source = "quantity", target = "quantity")
         @Mapping(target = "student", ignore = true)
         @Mapping(target = "orderDate", ignore = true)
         @Mapping(target = "totalPrice", ignore = true)
+        @Mapping(target = "orderId", ignore = true)
+        @Mapping(target = "orderStatus", ignore = true)
         Order toEntity(OrderPostRequestDTO orderPostRequestDTO);
 
         default String getStudentName(Order order) {

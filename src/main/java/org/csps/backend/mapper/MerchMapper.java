@@ -13,11 +13,9 @@ public interface MerchMapper {
     @Mapping(target = "variants", source = "merchVariantList")
     MerchDetailedResponseDTO toDetailedResponseDTO (Merch merch);
 
-    MerchSummaryResponseDTO toSummaryResponseDTO(Merch merch);
     
 
     // DTO -> Entity
     @Mapping(target = "merchVariantList", source = "merchVariantRequestDto")
-    @Mapping(target="price", source = "price")
     Merch toEntity(MerchRequestDTO dto);
 }

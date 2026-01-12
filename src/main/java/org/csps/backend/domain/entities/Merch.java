@@ -6,8 +6,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.csps.backend.domain.enums.MerchType;
+import org.csps.backend.domain.enums.ClothingSizing;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Builder
 @Entity
@@ -18,7 +20,6 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 public class Merch {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long merchId;
@@ -34,10 +35,11 @@ public class Merch {
     private MerchType merchType;
 
     @Column(nullable = false)
-    private Double price;
-    
+    private Double basePrice;
+
+    @Column(nullable = false)
+    private String s3ImageKey;  // S3 object key of the first variant's image - REQUIRED
 
     @OneToMany(mappedBy = "merch", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MerchVariant> merchVariantList;
-
 }

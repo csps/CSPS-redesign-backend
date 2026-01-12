@@ -1,6 +1,5 @@
 package org.csps.backend.service;
 
-
 import java.io.IOException;
 import java.util.UUID;
 
@@ -10,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -46,9 +46,9 @@ public class S3Service {
     /**
      * Upload file to S3
      */
-    public String uploadFile(MultipartFile file, String stakeHolderId) throws IOException {
-        String fileName = generateFileName(stakeHolderId, file.getOriginalFilename());
-
+    public String uploadFile(MultipartFile file, Object entityId, String entityName) throws IOException {
+        String fileName = generateFileName(entityId, file.getOriginalFilename(), entityName);
+        
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(fileName)
@@ -57,7 +57,7 @@ public class S3Service {
                 .build();
 
         s3Client.putObject(putObjectRequest,
-                software.amazon.awssdk.core.sync.RequestBody.fromBytes(file.getBytes()));
+                RequestBody.fromBytes(file.getBytes()));
 
         return fileName;
     }
@@ -90,8 +90,8 @@ public class S3Service {
     /**
      * Generate unique file name
      */
-    private String generateFileName(String stakeHolderId, String originalFileName) {
+    private String generateFileName(Object entityId, String originalFileName, String entityName) {
         String extension = originalFileName.substring(originalFileName.lastIndexOf("."));
-        return "documents/" + stakeHolderId + "/" + UUID.randomUUID() + extension;
+        return entityName + "/" + entityId + "/" + UUID.randomUUID() + extension;
     }
 }

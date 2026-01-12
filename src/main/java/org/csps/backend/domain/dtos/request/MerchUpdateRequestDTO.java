@@ -8,7 +8,5 @@ import lombok.Data;
 public class MerchUpdateRequestDTO {
     private String merchName;
     private String description;
-
-    
     private MerchType merchType;
 }

@@ -13,5 +13,5 @@ import java.io.Serializable;
 @Embeddable
 public class CartItemId implements Serializable {
     private String cartId;
-    private Long merchVariantId;
+    private Long merchVariantItemId;
 }

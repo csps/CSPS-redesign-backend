@@ -38,8 +38,8 @@ public class Order {
     private Long orderId;
 
     @ManyToOne
-    @JoinColumn(name = "merch_variant_id", nullable = false)
-    private MerchVariant merchVariant;
+    @JoinColumn(name = "merch_variant_item_id", nullable = false)
+    private MerchVariantItem orderItems;
 
     @Column(nullable = false)
     private LocalDate orderDate;

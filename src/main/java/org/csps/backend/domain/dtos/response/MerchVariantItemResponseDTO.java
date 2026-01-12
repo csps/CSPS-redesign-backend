@@ -1,4 +1,4 @@
-package org.csps.backend.domain.dtos.request;
+package org.csps.backend.domain.dtos.response;
 
 import org.csps.backend.domain.enums.ClothingSizing;
 
@@ -11,10 +11,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class MerchVariantUpdateRequestDTO {
-    private String color;
-    private String design;
+public class MerchVariantItemResponseDTO {
+    private Long merchVariantItemId;
     private ClothingSizing size;
-    private Double price;
     private Integer stockQuantity;
+    private Double price;
 }

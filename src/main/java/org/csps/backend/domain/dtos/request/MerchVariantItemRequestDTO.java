@@ -1,4 +1,4 @@
-package org.csps.backend.domain.dtos.response;
+package org.csps.backend.domain.dtos.request;
 
 import java.util.List;
 
@@ -9,12 +9,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ClothingResponseDTO {
-    private Long merchId;
+public class MerchVariantItemRequestDTO {
     private ClothingSizing size;
-    private List<String> availableColors;
+    private Integer stockQuantity;
+    private Double price;
 }

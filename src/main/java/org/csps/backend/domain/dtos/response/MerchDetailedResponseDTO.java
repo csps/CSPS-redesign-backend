@@ -19,10 +19,13 @@ import lombok.NoArgsConstructor;
 public class MerchDetailedResponseDTO {
     private Long merchId;
     private String merchName;
+
     private String description;
     private MerchType merchType;
-    private Double price;
+
+    private Double basePrice;
     
+    private String s3ImageKey;
 
     @JsonAlias("variants")
     private List<MerchVariantResponseDTO> variants; // include variants here

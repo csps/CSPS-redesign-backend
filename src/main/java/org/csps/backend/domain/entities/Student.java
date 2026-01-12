@@ -27,6 +27,7 @@ public class Student {
     @Column(nullable = false)
     private Byte yearLevel;
 
+
     @OneToOne
     @JoinColumn(name = "user_account_id")
     private UserAccount userAccount;

@@ -5,10 +5,11 @@ import java.util.List;
 
 import org.csps.backend.domain.dtos.request.MerchVariantRequestDTO;
 import org.csps.backend.domain.dtos.request.MerchVariantUpdateRequestDTO;
-import org.csps.backend.domain.dtos.response.ClothingResponseDTO;
+
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.MerchVariantResponseDTO;
 import org.csps.backend.domain.enums.ClothingSizing;
+import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.service.MerchVariantService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,131 +24,69 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/merchVariant")
+@RequestMapping("/api/merch-variant")
 @RequiredArgsConstructor
 public class MerchVariantController {
+
     private final MerchVariantService merchVariantService;
 
+    /**
+     * Adds a new visual variant (Color/Design) to a specific merchandise.
+     */
     @PostMapping("/{merchId}/add")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<MerchVariantResponseDTO> addVariant(
             @PathVariable Long merchId,
-            @RequestBody MerchVariantRequestDTO variantRequest) {
+            @RequestBody MerchVariantRequestDTO variantRequest) throws IOException {
         MerchVariantResponseDTO newVariant = merchVariantService.addVariantToMerch(merchId, variantRequest);
         return ResponseEntity.ok(newVariant);
     }
 
-    @PostMapping("/{merchId}/add-with-image")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<GlobalResponseBuilder<MerchVariantResponseDTO>> addVariantWithImage(
-            @PathVariable Long merchId,
-            @RequestParam("file") MultipartFile imageFile,
-            @RequestParam("color") String color,
-            @RequestParam("size") ClothingSizing size,
-            @RequestParam("price") Double price,
-            @RequestParam("stockQuantity") Integer stockQuantity) {
-        try {
-            MerchVariantRequestDTO request = new MerchVariantRequestDTO();
-            request.setMerchId(merchId);
-            request.setColor(color);
-            request.setSize(size);
-            request.setPrice(price);
-            request.setStockQuantity(stockQuantity);
-            
-            MerchVariantResponseDTO response = merchVariantService.addMerchVariantWithImage(request, imageFile);
-            return GlobalResponseBuilder.buildResponse("Variant created with image successfully", response, HttpStatus.CREATED);
-        } catch (IOException e) {
-            return GlobalResponseBuilder.buildResponse("Failed to upload variant image", null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @GetMapping("/{merchId}")
+    /**
+     * Retrieves all visual variants for a specific merchandise (e.g., all colors available).
+     */
+    @GetMapping("/merch/{merchId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
-    public ResponseEntity<List<MerchVariantResponseDTO>> getMerchVariantByMerchId(@PathVariable Long merchId) {
-        return ResponseEntity.ok(merchVariantService.getMerchVariantByMerchId(merchId));
+    public ResponseEntity<List<MerchVariantResponseDTO>> getVariantsByMerchId(@PathVariable Long merchId) {
+        return ResponseEntity.ok(merchVariantService.getVariantsByMerchId(merchId));
     }
 
-    @GetMapping("/{merchId}/all")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
-    public ResponseEntity<List<MerchVariantResponseDTO>> getMerchVariantById(@PathVariable Long merchId) {
-        return ResponseEntity.ok(merchVariantService.getMerchVariantByMerchId(merchId));
-    }
-
-    @GetMapping("/{merchId}/size/{size}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
-    public ResponseEntity<MerchVariantResponseDTO> getMerchVariantBySize(
-            @PathVariable Long merchId,
-            @PathVariable ClothingSizing size) {
-        MerchVariantResponseDTO merchVariant = merchVariantService.getMerchVariantBySize(
-                size,
-                merchId);
-        return ResponseEntity.ok(merchVariant);
-    }
-
+    /**
+     * Finds a specific variant by its unique key (Color for clothing, Design for others).
+     */
     @GetMapping("/{merchId}/find")
     @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
-    public ResponseEntity<MerchVariantResponseDTO> findMerchVariant(
+    public ResponseEntity<MerchVariantResponseDTO> findVariantByKey(
             @PathVariable Long merchId,
             @RequestParam(required = false) String color,
-            @RequestParam(required = false) ClothingSizing size,
             @RequestParam(required = false) String design) {
-
-        MerchVariantResponseDTO merchVariant = merchVariantService.getMerchVariant(merchId, color, size, design);
-        return ResponseEntity.ok(merchVariant);
+        return ResponseEntity.ok(merchVariantService.getVariantByMerchAndKey(merchId, color, design));
     }
 
-    @GetMapping("/{merchId}/available/sizes")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
-    public ResponseEntity<java.util.List<ClothingSizing>> getAvailableSizesForColor(
-            @PathVariable Long merchId,
-            @RequestParam String color) {
-        java.util.List<ClothingSizing> sizes = merchVariantService.getAvailableSizesForColor(merchId, color);
-        return ResponseEntity.ok(sizes);
-    }
-
-    @GetMapping("/{merchId}/clothing/size")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
-    public ResponseEntity<org.csps.backend.domain.dtos.response.ClothingResponseDTO> getClothingBySize(
-            @PathVariable Long merchId,
-            @RequestParam ClothingSizing size) {
-        ClothingResponseDTO dto = merchVariantService.getClothingBySize(merchId, size);
-        return ResponseEntity.ok(dto);
-    }
-
-    @PutMapping("/{merchId}/update")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<GlobalResponseBuilder<MerchVariantResponseDTO>> putMerchVariant(@PathVariable Long merchId, @RequestBody MerchVariantUpdateRequestDTO merchVariantUpdateRequestDTO) {
-        MerchVariantResponseDTO response = merchVariantService.putMerchVariant(merchId, merchVariantUpdateRequestDTO);
-
-        String message = "Merch Variant Updated Successfully";
-
-        return GlobalResponseBuilder.buildResponse(message, response, HttpStatus.OK);
-    }
-    
-    @PatchMapping("/{merchId}/update")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<GlobalResponseBuilder<MerchVariantResponseDTO>> patchMerchVariant(@PathVariable Long merchId, @RequestBody MerchVariantUpdateRequestDTO merchVariantUpdateRequestDTO) {
-        MerchVariantResponseDTO response = merchVariantService.patchMerchVariant(merchId, merchVariantUpdateRequestDTO);
-
-        String message = "Merch Variant Updated Successfully";
-
-        return GlobalResponseBuilder.buildResponse(message, response, HttpStatus.OK);
-    }
-    
+    /**
+     * Uploads or updates the image for a specific variant.
+     */
     @PostMapping("/{merchVariantId}/upload-image")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<GlobalResponseBuilder<String>> uploadVariantImage(
             @PathVariable Long merchVariantId,
-            @RequestParam("file") MultipartFile file) {
-        try {
-            String s3ImageKey = merchVariantService.uploadVariantImage(merchVariantId, file);
-            return GlobalResponseBuilder.buildResponse("Image uploaded successfully", s3ImageKey, HttpStatus.OK);
-        } catch (IOException e) {
-            return GlobalResponseBuilder.buildResponse("Failed to upload image", null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+            @RequestParam("file") MultipartFile file) throws IOException {
+        String s3ImageKey = merchVariantService.uploadVariantImage(merchVariantId, file);
+        return GlobalResponseBuilder.buildResponse("Image uploaded successfully", s3ImageKey, HttpStatus.OK);
     }
 
+    /**
+     * Retrieves all variants across all merchandise (Admin utility).
+     */
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<MerchVariantResponseDTO>> getAllVariants() {
+        return ResponseEntity.ok(merchVariantService.getAllMerchVariants());
+    }
+
+ 
 }

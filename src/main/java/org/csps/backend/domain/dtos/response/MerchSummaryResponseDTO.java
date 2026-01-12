@@ -16,5 +16,7 @@ public class MerchSummaryResponseDTO {
     private String merchName;
     private String description;
     private MerchType merchType;
-    private Double price;
+    private Double basePrice;
+    private String s3ImageKey;
+    private Integer totalStockQuantity;
 }
