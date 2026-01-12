@@ -1,18 +1,31 @@
 package org.csps.backend.domain.dtos.response;
 
-import org.csps.backend.domain.enums.OrderStatus;
+import java.time.LocalDate;
+import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class OrderResponseDTO {
 
     private Long orderId;
-    private String merchVariantName;
-    private String merchVariantColor;
-    private String merchVariantSize;
-    private int quantity;
+    
     private String studentName;
+    
     private Double totalPrice;
-    private OrderStatus orderStatus;
+    
+    @JsonAlias("order_date")
+    private LocalDate orderDate;
+    
+    @JsonAlias("order_items")
+    private List<OrderItemResponseDTO> orderItems;
 }
+
