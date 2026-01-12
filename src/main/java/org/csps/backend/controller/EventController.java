@@ -17,10 +17,11 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
 
@@ -49,6 +50,14 @@ public class EventController {
         return GlobalResponseBuilder.buildResponse(message, event, HttpStatus.OK);
     }
 
+    @GetMapping("/image/{s3ImageKey}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> getEventByS3ImageKey(@PathVariable String s3ImageKey) {
+        EventResponseDTO event = eventService.getEventByS3ImageKey(s3ImageKey);
+        String message = "Event retrieved successfully";
+        return GlobalResponseBuilder.buildResponse(message, event, HttpStatus.OK);
+    }
+
     @GetMapping("")
     @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
     public ResponseEntity<GlobalResponseBuilder<List<EventResponseDTO>>> getEventByDate(@RequestParam LocalDate eventDate) {
@@ -60,8 +69,10 @@ public class EventController {
 
     @PostMapping("/add")
     @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
-    public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> addEvent(@RequestBody EventPostRequestDTO eventPostRequestDTO) {
-        EventResponseDTO event = eventService.postEvent(eventPostRequestDTO);
+    public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> addEvent(
+            @RequestPart("event") EventPostRequestDTO eventPostRequestDTO,
+            @RequestPart(value = "eventImage", required = false) MultipartFile eventImage) throws Exception {
+        EventResponseDTO event = eventService.postEvent(eventPostRequestDTO, eventImage);
         String message = "Event added successfully";
         return GlobalResponseBuilder.buildResponse(message, event, HttpStatus.CREATED);
     }
@@ -76,16 +87,22 @@ public class EventController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
-    public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> putEvent(@PathVariable Long id, @RequestBody EventUpdateRequestDTO eventUpdateRequestDTO) {
-        EventResponseDTO event = eventService.putEvent(id, eventUpdateRequestDTO);
+    public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> putEvent(
+            @PathVariable Long id,
+            @RequestPart("event") EventUpdateRequestDTO eventUpdateRequestDTO,
+            @RequestPart(value = "eventImage", required = false) MultipartFile eventImage) throws Exception {
+        EventResponseDTO event = eventService.putEvent(id, eventUpdateRequestDTO, eventImage);
         String message = "Event updated successfully";
         return GlobalResponseBuilder.buildResponse(message, event, HttpStatus.OK);
     }
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
-    public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> patchEvent(@PathVariable Long id, @RequestBody EventUpdateRequestDTO eventUpdateRequestDTO) {
-        EventResponseDTO event = eventService.patchEvent(id, eventUpdateRequestDTO);
+    public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> patchEvent(
+            @PathVariable Long id,
+            @RequestPart("event") EventUpdateRequestDTO eventUpdateRequestDTO,
+            @RequestPart(value = "eventImage", required = false) MultipartFile eventImage) throws Exception {
+        EventResponseDTO event = eventService.patchEvent(id, eventUpdateRequestDTO, eventImage);
         String message = "Event patched successfully";
         return GlobalResponseBuilder.buildResponse(message, event, HttpStatus.OK);
     }
