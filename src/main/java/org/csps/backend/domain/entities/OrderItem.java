@@ -1,19 +1,16 @@
 package org.csps.backend.domain.entities;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import org.csps.backend.domain.enums.OrderStatus;
+import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
@@ -23,44 +20,35 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
 @Entity
-@Table(name = "orders", indexes = 
-{
-    @Index(name = "idx_order_status", columnList = "order_status"), 
-    @Index(name = "idx_student_id", columnList = "student_id")
-}
-)
+@Table(name = "order_item")
+@Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class Order {
+public class OrderItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long orderId;
+    private Long orderItemId;
 
-    @OneToMany(mappedBy = "order")
-    private List<OrderItem> orderItems;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false)
+    private Order order;
 
-    @Column(nullable = false)
-    private LocalDate orderDate;
-
-    @ManyToOne
-    @JoinColumn(name = "student_id", nullable = false)
-    private Student student;
-
-    private Double totalPrice;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "merch_variant_item_id", nullable = false)
+    private MerchVariantItem merchVariantItem;
 
     @Column(nullable = false)
-    private int quantity;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private OrderStatus orderStatus;
+    private Integer quantity;
 
     @Column(nullable = false)
+    private Double priceAtPurchase;
+
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
 }
