@@ -43,26 +43,23 @@ public class Order {
     @OneToMany(mappedBy = "order")
     private List<OrderItem> orderItems;
 
-    @Column(nullable = false)
-    private LocalDate orderDate;
-
+    
     @ManyToOne
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
-
+    
     private Double totalPrice;
-
+    
     @Column(nullable = false)
     private int quantity;
-
+    
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus orderStatus;
-
+    
     @Column(nullable = false)
-    @CreationTimestamp
-    private LocalDateTime createdAt;
-
+    private LocalDateTime orderDate;
+    
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 }
