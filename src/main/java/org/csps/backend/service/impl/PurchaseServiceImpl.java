@@ -14,9 +14,11 @@ import org.csps.backend.domain.entities.Purchase;
 import org.csps.backend.domain.entities.PurchaseItem;
 import org.csps.backend.domain.entities.Student;
 import org.csps.backend.domain.entities.composites.PurchaseItemId;
+import org.csps.backend.domain.enums.PurchaseItemStatus;
 import org.csps.backend.exception.InsufficientBalanceException;
 import org.csps.backend.exception.MerchVariantNotFoundException;
 import org.csps.backend.exception.OutOfStockException;
+import org.csps.backend.exception.PurchaseNotFoundException;
 import org.csps.backend.exception.StudentNotFoundException;
 import org.csps.backend.mapper.PurchaseMapper;
 import org.csps.backend.repository.MerchVariantRepository;
@@ -25,6 +27,7 @@ import org.csps.backend.repository.StudentRepository;
 import org.csps.backend.service.PurchaseService;
 import org.springframework.stereotype.Service;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -41,6 +44,7 @@ public class PurchaseServiceImpl implements PurchaseService{
     
     
     @Override
+    @Transactional
     public PurchaseResponseDTO createPurchase(PurchaseRequestDTO purchaseRequestDTO) {
         // Get student ID and money
         String studentId = purchaseRequestDTO.getStudentId();
@@ -104,6 +108,7 @@ public class PurchaseServiceImpl implements PurchaseService{
                 purchaseItem.setPurchaseItemId(new PurchaseItemId(purchaseId,merchVariantId));
                 purchaseItem.setMerchVariant(merchVariant);
                 purchaseItem.setQuantity(itemRequest.getQuantity());
+                purchaseItem.setStatus(PurchaseItemStatus.NOT_PAID);
     
                 purchaseItems.add(purchaseItem);
     
@@ -122,6 +127,16 @@ public class PurchaseServiceImpl implements PurchaseService{
 
         PurchaseResponseDTO response = purchaseMapper.toResponseDTO(savedPurchase);
         return response;
+    }
+
+
+    @Override
+    public List<PurchaseResponseDTO> getPurchaseByStudentId(String studentId) {
+        List<Purchase> purchases = purchaseRepository.findByStudentStudentId(studentId);
+
+        return purchases.stream()
+                        .map(purchaseMapper::toResponseDTO)
+                        .toList();
     }
 
 

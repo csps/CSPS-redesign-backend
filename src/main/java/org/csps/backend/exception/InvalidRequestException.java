@@ -1,4 +1,4 @@
-package org.csps.backend.domain.dtos.request;
+package org.csps.backend.exception;
 
 public class InvalidRequestException extends RuntimeException {
     public InvalidRequestException(String message) {

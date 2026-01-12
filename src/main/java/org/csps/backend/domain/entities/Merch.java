@@ -11,7 +11,9 @@ import java.util.List;
 
 @Builder
 @Entity
-@Table
+@Table(name = "merch", indexes = {
+    @Index(name = "idx_merch_type", columnList = "merch_type")
+})
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
@@ -30,6 +32,10 @@ public class Merch {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MerchType merchType;
+
+    @Column(nullable = false)
+    private Double price;
+    
 
     @OneToMany(mappedBy = "merch", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MerchVariant> merchVariantList;

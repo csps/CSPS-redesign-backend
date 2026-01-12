@@ -34,6 +34,8 @@ public class CartItemController {
         return GlobalResponseBuilder.buildResponse("Cart item added successfully", responseDTO, HttpStatus.CREATED);
     }
 
+    
+
     @DeleteMapping
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<GlobalResponseBuilder<CartItemResponseDTO>> removeCartItem(@AuthenticationPrincipal String studentId, @RequestBody RemoveCartItemRequestDTO requestDTO) {

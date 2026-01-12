@@ -5,6 +5,7 @@ import java.util.List;
 import org.csps.backend.domain.dtos.request.PurchaseRequestDTO;
 import org.csps.backend.domain.dtos.response.PurchaseResponseDTO;
 import org.csps.backend.service.PurchaseService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -39,6 +40,14 @@ public class PurchaseController {
         // create purchase
         return ResponseEntity.ok(purchaseService.createPurchase(purchaseRequestDTO));
     }
-    
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<List<PurchaseResponseDTO>> getPurchaseByStudentId(@AuthenticationPrincipal String studentId) {
+        List<PurchaseResponseDTO> purchases = purchaseService.getPurchaseByStudentId(studentId);
+        
+        
+        return ResponseEntity.ok(purchases);
+    }
 
 }

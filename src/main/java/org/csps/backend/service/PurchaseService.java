@@ -7,5 +7,7 @@ import org.csps.backend.domain.dtos.response.PurchaseResponseDTO;
 
 public interface PurchaseService {
     PurchaseResponseDTO createPurchase(PurchaseRequestDTO purchaseRequestDTO);
+
+    List<PurchaseResponseDTO> getPurchaseByStudentId(String studentId);
     List<PurchaseResponseDTO> getAllPurchases();
 }

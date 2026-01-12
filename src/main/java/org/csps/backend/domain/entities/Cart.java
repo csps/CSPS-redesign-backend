@@ -27,7 +27,7 @@ public class Cart {
     private String cartId;
 
     @OneToOne
-    @PrimaryKeyJoinColumn
+    @PrimaryKeyJoinColumn(name = "cartId", referencedColumnName = "studentId")
     private Student student;
 
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)

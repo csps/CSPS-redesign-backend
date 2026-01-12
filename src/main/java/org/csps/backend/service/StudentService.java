@@ -9,7 +9,7 @@ import org.csps.backend.domain.entities.Student;
 
 
 public interface StudentService {
-   StudentResponseDTO createStudentProfile(StudentRequestDTO studentRequestDTO);
+   StudentResponseDTO createStudent(StudentRequestDTO studentRequestDTO);
    public List<StudentResponseDTO> getAllStudents();
    StudentResponseDTO getStudentProfile(String studentId);
    Optional<Student> findByAccountId(Long accountId);

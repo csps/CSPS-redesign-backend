@@ -1,17 +1,23 @@
  package org.csps.backend.service.impl;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-import org.csps.backend.domain.dtos.request.InvalidRequestException;
-import org.csps.backend.domain.dtos.request.MerchAlreadyExistException;
 import org.csps.backend.domain.dtos.request.MerchRequestDTO;
 import org.csps.backend.domain.dtos.request.MerchUpdateRequestDTO;
-import org.csps.backend.domain.dtos.response.MerchResponseDTO;
+import org.csps.backend.domain.dtos.request.MerchVariantRequestDTO;
+import org.csps.backend.domain.dtos.response.MerchDetailedResponseDTO;
+import org.csps.backend.domain.dtos.response.MerchSummaryResponseDTO;
 import org.csps.backend.domain.dtos.response.MerchVariantResponseDTO;
 import org.csps.backend.domain.entities.Merch;
 import org.csps.backend.domain.entities.MerchVariant;
+import org.csps.backend.domain.enums.ClothingSizing;
 import org.csps.backend.domain.enums.MerchType;
+import org.csps.backend.exception.InvalidRequestException;
+import org.csps.backend.exception.MerchAlreadyExistException;
 import org.csps.backend.exception.MerchNotFoundException;
+import org.csps.backend.exception.MerchVariantAlreadyExisted;
 import org.csps.backend.mapper.MerchMapper;
 import org.csps.backend.mapper.MerchVariantMapper;
 import org.csps.backend.repository.MerchRepository;
@@ -32,32 +38,90 @@ public class MerchServiceImpl implements MerchService {
 
     @Override
     @Transactional
-    public MerchResponseDTO createMerch(MerchRequestDTO request) {
-        // Step 1: Convert request → entity
+    public MerchDetailedResponseDTO createMerch(MerchRequestDTO request) {
+        if (request == null) throw new InvalidRequestException("Request is required");
+
+        String merchName = request.getMerchName();
+        String description = request.getDescription();
+        Double merchPrice = request.getPrice();
+        MerchType merchType = request.getMerchType();
+
+        // Validate basic merch fields
+        if (merchName == null || merchName.trim().isEmpty()) {
+            throw new InvalidRequestException("Merchandise name is required");
+        }
+        if (merchPrice == null || merchPrice < 0) {
+            throw new InvalidRequestException("Price is required and must be non-negative");
+        }
+        if (merchType == null) {
+            throw new InvalidRequestException("Merch type is required");
+        }
+
+        // Check duplicate name
+        if (merchRepository.existsByMerchName(merchName)) {
+            throw new MerchAlreadyExistException("Merch Name Already Exist");
+        }
+
+        // Map DTO -> entity (basic fields)
         Merch merch = merchMapper.toEntity(request);
 
-        // Step 2: Convert variant DTOs → entities
-        List<MerchVariant> merchVariants = request.getMerchVariantRequestDto()
-            .stream()
-            .map(merchVariantMapper::toEntity)
-            .toList();
+        // Validate and map variants carefully
+        List<MerchVariantRequestDTO> variantDtos = request.getMerchVariantRequestDto();
+        if (variantDtos == null) variantDtos = java.util.List.of();
 
-        // Attach each variant back to merch
-        merchVariants.forEach(variant -> variant.setMerch(merch));
+        Set<String> seenKeys = new HashSet<>();
+
+        List<MerchVariant> merchVariants = variantDtos.stream().map(dto -> {
+            if (dto == null) throw new InvalidRequestException("Variant cannot be null");
+
+            Double vPrice = dto.getPrice();
+            Integer vStock = dto.getStockQuantity();
+            String vColor = dto.getColor();
+            String vDesign = dto.getDesign();
+            ClothingSizing vSize = dto.getSize();
+
+            if (vPrice == null || vPrice < 0) throw new InvalidRequestException("Variant price is required and must be non-negative");
+            if (vStock == null || vStock < 0) throw new InvalidRequestException("Variant stockQuantity is required and must be non-negative");
+
+            switch (merch.getMerchType()) {
+                case CLOTHING -> {
+                    // clothing requires color and size (design is optional)
+                    if (vSize == null) throw new InvalidRequestException("size is required for clothing variant");
+                    if (vColor == null || vColor.trim().isEmpty()) throw new InvalidRequestException("color is required for clothing variant");
+                    String key = ("CLOTH:" + vColor.trim().toLowerCase() + ":" + vSize.name());
+                    if (!seenKeys.add(key)) {
+                        throw new MerchVariantAlreadyExisted("Duplicate clothing variant in request: " + vColor + " / " + vSize);
+                    }
+                }
+                case PIN, STICKER, KEYCHAIN -> {
+                    // non-clothing requires design; size/color must not be present
+                    if (vDesign == null || vDesign.trim().isEmpty()) throw new InvalidRequestException("design is required for this merch type");
+                    if (vSize != null) throw new InvalidRequestException("size not allowed for non-clothing variant");
+                    if (vColor != null && !vColor.trim().isEmpty()) throw new InvalidRequestException("color not allowed for non-clothing variant");
+                    String key = ("DESIGN:" + vDesign.trim().toLowerCase());
+                    if (!seenKeys.add(key)) {
+                        throw new MerchVariantAlreadyExisted("Duplicate design variant in request: " + vDesign);
+                    }
+                }
+                default -> throw new InvalidRequestException("Unsupported merch type");
+            }
+
+            MerchVariant variant = merchVariantMapper.toEntity(dto);
+            variant.setMerch(merch);
+            return variant;
+        }).toList();
+
         merch.setMerchVariantList(merchVariants);
 
-        // Step 3: Save entity
-        Merch savedMerch = merchRepository.save(merch);
+        // Persist
+        Merch saved = merchRepository.save(merch);
 
-        // Step 4: Convert back to response DTO
-        MerchResponseDTO responseDTO = merchMapper.toResponseDTO(savedMerch);
-
-        // Fill in the variants manually using MerchVariantMapper
-        List<MerchVariantResponseDTO> variantResponseDTOs = savedMerch.getMerchVariantList()
-            .stream()
-            .map(merchVariantMapper::toResponseDTO)
-            .toList();
-
+        // Build response DTO with variant responses
+        MerchDetailedResponseDTO responseDTO = merchMapper.toDetailedResponseDTO(saved);
+        List<MerchVariantResponseDTO> variantResponseDTOs = saved.getMerchVariantList()
+                .stream()
+                .map(merchVariantMapper::toResponseDTO)
+                .toList();
         responseDTO.setVariants(variantResponseDTOs);
 
         return responseDTO;
@@ -66,23 +130,43 @@ public class MerchServiceImpl implements MerchService {
 
     
     @Override
-    public List<MerchResponseDTO> getAllMerch() {
+    public List<MerchDetailedResponseDTO> getAllMerch() {
         return merchRepository.findAll()
                 .stream()
-                .map(merchMapper::toResponseDTO)
+                .map(merchMapper::toDetailedResponseDTO)
                 .toList();
     }
 
     @Override
-    public MerchResponseDTO getMerchById(Long id) {
+    public List<MerchSummaryResponseDTO> getAllMerchWithoutVariants() {
+        return merchRepository.findAll()
+                .stream()
+                .map(merchMapper::toSummaryResponseDTO)
+                .toList();
+    }
+
+    @Override
+    public List<MerchSummaryResponseDTO> getMerchByType(MerchType merchType) {
+        if (merchType == null) {
+            throw new InvalidRequestException("Merch type is required");
+        }
+
+        return merchRepository.findByMerchType(merchType)
+                .stream()
+                .map(merchMapper::toSummaryResponseDTO)
+                .toList();
+    }
+
+    @Override
+    public MerchDetailedResponseDTO getMerchById(Long id) {
         Merch merch = merchRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Merch not found with id: " + id));
-        return merchMapper.toResponseDTO(merch);
+                .orElseThrow(() -> new MerchNotFoundException("Merch not found with id: " + id));
+        return merchMapper.toDetailedResponseDTO(merch);
     }
 
     @Override
     @Transactional
-    public MerchResponseDTO putMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) {
+    public MerchDetailedResponseDTO putMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) {
         // find the merch by id
         Merch foundMerch = merchRepository.findById(merchId)
                             .orElseThrow(() -> new MerchNotFoundException("Merch Not Found"));
@@ -115,13 +199,13 @@ public class MerchServiceImpl implements MerchService {
         merchRepository.save(foundMerch);
         
         // return the response
-        MerchResponseDTO merchResponseDTO = merchMapper.toResponseDTO(foundMerch);
+        MerchDetailedResponseDTO merchResponseDTO = merchMapper.toDetailedResponseDTO(foundMerch);
         return merchResponseDTO;
     }
 
     @Override
     @Transactional
-    public MerchResponseDTO patchMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) {
+    public MerchDetailedResponseDTO patchMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) {
         // find the merch by id
         Merch foundMerch = merchRepository.findById(merchId)
                             .orElseThrow(() -> new MerchNotFoundException("Merch Not Found"));
@@ -148,7 +232,7 @@ public class MerchServiceImpl implements MerchService {
         // save the merch
         merchRepository.save(foundMerch);
 
-        MerchResponseDTO merchResponseDTO = merchMapper.toResponseDTO(foundMerch);
+        MerchDetailedResponseDTO merchResponseDTO = merchMapper.toDetailedResponseDTO(foundMerch);
 
         // return the response
         return merchResponseDTO;

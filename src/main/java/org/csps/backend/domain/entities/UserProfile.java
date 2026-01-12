@@ -1,6 +1,6 @@
 package org.csps.backend.domain.entities;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 import jakarta.persistence.Column;
@@ -39,7 +39,7 @@ public class UserProfile {
     private String middleName;
 
     @Column(nullable = false)
-    private Date birthDate;
+    private LocalDate birthDate;
 
     @Column(nullable = false)
     @Email(message = "Invalid email format")

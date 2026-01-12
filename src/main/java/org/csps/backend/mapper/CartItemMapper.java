@@ -6,13 +6,14 @@ import org.csps.backend.domain.entities.CartItem;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel="spring")
+@Mapper(componentModel="spring", uses={MerchVariantMapper.class})
 public interface CartItemMapper {
 
     
-    @Mapping(source="id.merchVariantId", target="merchVariantId")
     @Mapping(source="id.cartId", target="cartId")
+    @Mapping(source="merchVariant.merch.merchName", target="merchName")
     @Mapping(source="quantity", target="quantity")
+    @Mapping(source="merchVariant.merch.merchType", target="merchType")
     CartItemResponseDTO toResponseDTO (CartItem cartItem);
 
     

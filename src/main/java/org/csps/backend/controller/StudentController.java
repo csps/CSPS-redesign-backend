@@ -32,7 +32,7 @@ public class StudentController {
    @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
    public ResponseEntity<StudentResponseDTO> createStudent(@RequestBody StudentRequestDTO studentRequestDTO) {
        // create student
-       StudentResponseDTO createdStudent = studentService.createStudentProfile(studentRequestDTO);
+       StudentResponseDTO createdStudent = studentService.createStudent(studentRequestDTO);
        return ResponseEntity.status(HttpStatus.CREATED).body(createdStudent);
    }
 

@@ -5,7 +5,9 @@ import java.util.List;
 import org.csps.backend.domain.dtos.request.MerchRequestDTO;
 import org.csps.backend.domain.dtos.request.MerchUpdateRequestDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
-import org.csps.backend.domain.dtos.response.MerchResponseDTO;
+import org.csps.backend.domain.dtos.response.MerchDetailedResponseDTO;
+import org.csps.backend.domain.dtos.response.MerchSummaryResponseDTO;
+import org.csps.backend.domain.enums.MerchType;
 import org.csps.backend.service.MerchService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,33 +30,47 @@ public class MerchController {
 
     private final MerchService merchService;
 
-    @PostMapping
+    @PostMapping("/post")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<MerchResponseDTO> createMerch(@RequestBody MerchRequestDTO merchRequestDTO) {
-        MerchResponseDTO createdMerch = merchService.createMerch(merchRequestDTO);
+    public ResponseEntity<MerchDetailedResponseDTO> createMerch(@RequestBody MerchRequestDTO merchRequestDTO) {
+        MerchDetailedResponseDTO createdMerch = merchService.createMerch(merchRequestDTO);
         return ResponseEntity.ok(createdMerch);
     }
+    
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
-    public ResponseEntity<List<MerchResponseDTO>> getAllMerch() {
-        List<MerchResponseDTO> merchList = merchService.getAllMerch();
+    public ResponseEntity<List<MerchDetailedResponseDTO>> getAllMerch() {
+        List<MerchDetailedResponseDTO> merchList = merchService.getAllMerch();
         return ResponseEntity.ok(merchList);
     }
 
-    
+    @GetMapping("/summary")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<List<MerchSummaryResponseDTO>> getAllMerchWithoutVariants() {
+        List<MerchSummaryResponseDTO> merchList = merchService.getAllMerchWithoutVariants();
+        return ResponseEntity.ok(merchList);
+    }
+
+    @GetMapping("/type/{type}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<List<MerchSummaryResponseDTO>> getMerchByType(@PathVariable MerchType type) {
+        List<MerchSummaryResponseDTO> merchList = merchService.getMerchByType(type);
+        return ResponseEntity.ok(merchList);
+    }
+
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
-    public ResponseEntity<MerchResponseDTO> getMerchById(@PathVariable Long id) {
-        MerchResponseDTO merch = merchService.getMerchById(id);
+    public ResponseEntity<MerchDetailedResponseDTO> getMerchById(@PathVariable Long id) {
+        MerchDetailedResponseDTO merch = merchService.getMerchById(id);
         return ResponseEntity.ok(merch);
     }
 
     @PutMapping("/update/{merchId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<GlobalResponseBuilder<MerchResponseDTO>> putMerch(@PathVariable Long merchId, @RequestBody MerchUpdateRequestDTO merchUpdateRequestDTO) {
-        MerchResponseDTO merchResponseDTO = merchService.putMerch(merchId, merchUpdateRequestDTO);
+    public ResponseEntity<GlobalResponseBuilder<MerchDetailedResponseDTO>> putMerch(@PathVariable Long merchId, @RequestBody MerchUpdateRequestDTO merchUpdateRequestDTO) {
+        MerchDetailedResponseDTO merchResponseDTO = merchService.putMerch(merchId, merchUpdateRequestDTO);
 
         String message = "Merch Updated Successfully";
         return GlobalResponseBuilder.buildResponse(message, merchResponseDTO, HttpStatus.OK);
@@ -62,12 +78,13 @@ public class MerchController {
 
     @PatchMapping("/update/{merchId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<GlobalResponseBuilder<MerchResponseDTO>> patchMerch(@PathVariable Long merchId, @RequestBody MerchUpdateRequestDTO merchUpdateRequestDTO) {
-        MerchResponseDTO merchResponseDTO = merchService.putMerch(merchId, merchUpdateRequestDTO);
+    public ResponseEntity<GlobalResponseBuilder<MerchDetailedResponseDTO>> patchMerch(@PathVariable Long merchId, @RequestBody MerchUpdateRequestDTO merchUpdateRequestDTO) {
+        MerchDetailedResponseDTO merchResponseDTO = merchService.patchMerch(merchId, merchUpdateRequestDTO);
 
         String message = "Merch Updated Successfully";
 
         return GlobalResponseBuilder.buildResponse(message, merchResponseDTO, HttpStatus.OK);
     }
+    
     
 }

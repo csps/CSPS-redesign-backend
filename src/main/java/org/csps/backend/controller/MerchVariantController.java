@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.csps.backend.domain.dtos.request.MerchVariantRequestDTO;
 import org.csps.backend.domain.dtos.request.MerchVariantUpdateRequestDTO;
+import org.csps.backend.domain.dtos.response.ClothingResponseDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.MerchVariantResponseDTO;
 import org.csps.backend.domain.enums.ClothingSizing;
@@ -75,6 +76,46 @@ public class MerchVariantController {
         return ResponseEntity.ok(merchVariantService.getMerchVariantByMerchId(merchId));
     }
 
+    @GetMapping("/{merchId}/size/{size}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<MerchVariantResponseDTO> getMerchVariantBySize(
+            @PathVariable Long merchId,
+            @PathVariable ClothingSizing size) {
+        MerchVariantResponseDTO merchVariant = merchVariantService.getMerchVariantBySize(
+                size,
+                merchId);
+        return ResponseEntity.ok(merchVariant);
+    }
+
+    @GetMapping("/{merchId}/find")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<MerchVariantResponseDTO> findMerchVariant(
+            @PathVariable Long merchId,
+            @RequestParam(required = false) String color,
+            @RequestParam(required = false) ClothingSizing size,
+            @RequestParam(required = false) String design) {
+
+        MerchVariantResponseDTO merchVariant = merchVariantService.getMerchVariant(merchId, color, size, design);
+        return ResponseEntity.ok(merchVariant);
+    }
+
+    @GetMapping("/{merchId}/available/sizes")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<java.util.List<ClothingSizing>> getAvailableSizesForColor(
+            @PathVariable Long merchId,
+            @RequestParam String color) {
+        java.util.List<ClothingSizing> sizes = merchVariantService.getAvailableSizesForColor(merchId, color);
+        return ResponseEntity.ok(sizes);
+    }
+
+    @GetMapping("/{merchId}/clothing/size")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<org.csps.backend.domain.dtos.response.ClothingResponseDTO> getClothingBySize(
+            @PathVariable Long merchId,
+            @RequestParam ClothingSizing size) {
+        ClothingResponseDTO dto = merchVariantService.getClothingBySize(merchId, size);
+        return ResponseEntity.ok(dto);
+    }
 
     @PutMapping("/{merchId}/update")
     @PreAuthorize("hasRole('ADMIN')")

@@ -1,6 +1,10 @@
 package org.csps.backend.domain.dtos.response;
 
+import java.util.List;
+
 import org.csps.backend.domain.enums.MerchType;
+
+import com.fasterxml.jackson.annotation.JsonAlias;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,10 +16,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CartItemResponseDTO {
-    private Long cartId;
-    private MerchVariantResponseDTO merchVariant;
+public class MerchDetailedResponseDTO {
+    private Long merchId;
     private String merchName;
+    private String description;
     private MerchType merchType;
-    private int quantity;
+    private Double price;
+    
+
+    @JsonAlias("variants")
+    private List<MerchVariantResponseDTO> variants; // include variants here
 }

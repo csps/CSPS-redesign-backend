@@ -7,12 +7,12 @@ import java.util.List;
 
 import org.csps.backend.domain.dtos.request.EventPostRequestDTO;
 import org.csps.backend.domain.dtos.request.EventUpdateRequestDTO;
-import org.csps.backend.domain.dtos.request.InvalidRequestException;
 import org.csps.backend.domain.dtos.response.EventResponseDTO;
 import org.csps.backend.domain.entities.Event;
 import org.csps.backend.domain.enums.EventStatus;
 import org.csps.backend.domain.enums.EventType;
 import org.csps.backend.exception.EventNotFoundException;
+import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.mapper.EventMapper;
 import org.csps.backend.repository.EventRepository;
 import org.csps.backend.service.EventService;
