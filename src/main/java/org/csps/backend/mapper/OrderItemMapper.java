@@ -11,6 +11,7 @@ public interface OrderItemMapper {
 
     @Mapping(source = "order.orderId", target = "orderId")
     @Mapping(source = "merchVariantItem.merchVariant.merch.merchName", target = "merchName")
+    @Mapping(source = "merchVariantItem.merchVariant.merch.merchType", target = "merchType")
     @Mapping(source = "merchVariantItem.merchVariant.color", target = "color")
     @Mapping(source = "merchVariantItem.merchVariant.design", target = "design")
     @Mapping(source = "merchVariantItem.size", target = "size")

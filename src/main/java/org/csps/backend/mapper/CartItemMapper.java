@@ -17,6 +17,7 @@ public interface CartItemMapper {
     @Mapping(source = "merchVariantItem.price", target = "unitPrice")
     @Mapping(source = "merchVariantItem.merchVariant.s3ImageKey", target = "s3ImageKey")
     @Mapping(source = "quantity", target = "quantity")
+    @Mapping(source = "merchVariantItem.merchVariant.merch.merchType", target = "merchType")
     @Mapping(target = "subTotal", expression = "java(cartItem.getQuantity() * (cartItem.getMerchVariantItem() != null ? cartItem.getMerchVariantItem().getPrice() : 0.0))")
     CartItemResponseDTO toResponseDTO(CartItem cartItem);
 
