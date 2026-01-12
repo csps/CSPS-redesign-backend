@@ -16,7 +16,9 @@ import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.mapper.EventMapper;
 import org.csps.backend.repository.EventRepository;
 import org.csps.backend.service.EventService;
+import org.csps.backend.service.S3Service;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -27,10 +29,11 @@ public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
+    private final S3Service s3Service;
 
     @Override
     @Transactional
-    public EventResponseDTO postEvent(EventPostRequestDTO eventPostRequestDTO) {
+    public EventResponseDTO postEvent(EventPostRequestDTO eventPostRequestDTO, MultipartFile eventImage) throws Exception {
         // convert the request to entity
         Event event = eventMapper.toEntity(eventPostRequestDTO);
 
@@ -80,12 +83,18 @@ public class EventServiceImpl implements EventService {
             throw new InvalidRequestException("Invalid Time Range");
         }
 
-        // persist the entity
-        eventRepository.save(event);
+        // persist the entity first
+        Event savedEvent = eventRepository.save(event);
 
+        // upload image to S3 if provided
+        if (eventImage != null && !eventImage.isEmpty()) {
+            String s3ImageKey = s3Service.uploadFile(eventImage, savedEvent.getEventId(), "event");
+            savedEvent.setS3ImageKey(s3ImageKey);
+            eventRepository.save(savedEvent);
+        }
 
         // convert the entity into response dto
-        EventResponseDTO eventResponseDTO = eventMapper.toResponseDTO(event);
+        EventResponseDTO eventResponseDTO = eventMapper.toResponseDTO(savedEvent);
 
         return eventResponseDTO;
     }
@@ -132,7 +141,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
-    public EventResponseDTO putEvent(Long eventId, EventUpdateRequestDTO eventUpdateRequestDTO) {
+    public EventResponseDTO putEvent(Long eventId, EventUpdateRequestDTO eventUpdateRequestDTO, MultipartFile eventImage) throws Exception {
     
         // find the event by id
         Event event = eventRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
@@ -194,6 +203,12 @@ public class EventServiceImpl implements EventService {
             throw new InvalidRequestException("Event already exists with the same date and time");
         }
 
+        // handle image upload if provided
+        if (eventImage != null && !eventImage.isEmpty()) {
+            String s3ImageKey = s3Service.uploadFile(eventImage, event.getEventId(), "event");
+            event.setS3ImageKey(s3ImageKey);
+        }
+
         // save the event
         eventRepository.save(event);
 
@@ -206,7 +221,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
-    public EventResponseDTO patchEvent(Long eventId, EventUpdateRequestDTO eventUpdateRequestDTO) {
+    public EventResponseDTO patchEvent(Long eventId, EventUpdateRequestDTO eventUpdateRequestDTO, MultipartFile eventImage) throws Exception {
     
         // find the event by id
         Event event = eventRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
@@ -272,6 +287,12 @@ public class EventServiceImpl implements EventService {
         
         if (existsOverlap) {
             throw new InvalidRequestException("Event already exists with the same date and time");
+        }
+
+        // handle image upload if provided
+        if (eventImage != null && !eventImage.isEmpty()) {
+            String s3ImageKey = s3Service.uploadFile(eventImage, event.getEventId(), "event");
+            event.setS3ImageKey(s3ImageKey);
         }
 
         // save the event
