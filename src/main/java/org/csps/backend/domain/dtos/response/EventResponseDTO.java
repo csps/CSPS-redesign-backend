@@ -15,6 +15,7 @@ public class EventResponseDTO {
     private String eventDescription;
     private String eventLocation;
     private LocalDate eventDate;
+    private String s3ImageKey;
     private LocalTime startTime;
     private LocalTime endTime;
     private EventType eventType;
