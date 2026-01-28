@@ -17,4 +17,9 @@ public interface EventService {
     EventResponseDTO putEvent(Long eventId, EventUpdateRequestDTO eventPostRequestDTO, MultipartFile eventImage) throws Exception;
     EventResponseDTO patchEvent(Long eventId, EventUpdateRequestDTO eventPostRequestDTO, MultipartFile eventImage) throws Exception;
     List<EventResponseDTO> getEventByDate(LocalDate eventDate);
+    List<EventResponseDTO> getUpcomingEvents();
+    
+    List<EventResponseDTO> getEventsByMonth(int year, int month);
+    
+    List<EventResponseDTO> getPastEvents();
 }

@@ -4,11 +4,9 @@ import java.io.IOException;
 import java.util.List;
 
 import org.csps.backend.domain.dtos.request.MerchVariantRequestDTO;
-
 import org.csps.backend.domain.dtos.response.MerchVariantResponseDTO;
 import org.csps.backend.domain.entities.Merch;
 import org.csps.backend.domain.entities.MerchVariant;
-import org.csps.backend.domain.enums.ClothingSizing;
 import org.csps.backend.domain.enums.MerchType;
 import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.exception.MerchNotFoundException;
@@ -17,6 +15,7 @@ import org.csps.backend.exception.MerchVariantNotFoundException;
 import org.csps.backend.mapper.MerchVariantMapper;
 import org.csps.backend.repository.MerchRepository;
 import org.csps.backend.repository.MerchVariantRepository;
+import org.csps.backend.service.MerchVariantItemService;
 import org.csps.backend.service.MerchVariantService;
 import org.csps.backend.service.S3Service;
 import org.springframework.stereotype.Service;
@@ -36,7 +35,9 @@ public class MerchVariantServiceImpl implements MerchVariantService {
     private final MerchVariantRepository merchVariantRepository;
     private final MerchVariantMapper merchVariantMapper;
     private final MerchRepository merchRepository;
+    
     private final S3Service s3Service;
+    private final MerchVariantItemService merchVariantItemService;
 
     @Override
     @Transactional
@@ -86,6 +87,10 @@ public class MerchVariantServiceImpl implements MerchVariantService {
                 
         MerchVariant saved = merchVariantRepository.save(variant);
         uploadVariantImage(saved.getMerchVariantId(), dto.getVariantImage());
+
+        if (dto.getVariantItems() != null && !dto.getVariantItems().isEmpty()) {
+            merchVariantItemService.addMultipleItemsToVariant(saved.getMerchVariantId(), dto.getVariantItems());
+        }
 
         saved = merchVariantRepository.save(saved); // Save again to update S3 key
         return merchVariantMapper.toResponseDTO(saved);

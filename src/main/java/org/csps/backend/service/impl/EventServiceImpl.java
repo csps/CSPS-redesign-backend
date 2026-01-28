@@ -75,6 +75,7 @@ public class EventServiceImpl implements EventService {
 
         event.setCreatedAt(LocalDateTime.now());
         event.setUpdatedAt(LocalDateTime.now());
+        event.setS3ImageKey("placeholder");
         
         LocalTime startTime = eventPostRequestDTO.getStartTime();
         LocalTime endTime = eventPostRequestDTO.getEndTime();
@@ -318,6 +319,56 @@ public class EventServiceImpl implements EventService {
                 
         // return the response dto
         return eventResponseDTOs;
+    }
+
+    @Override
+    public EventResponseDTO getEventByS3ImageKey(String s3ImageKey) {
+        Event event = eventRepository.findByS3ImageKey(s3ImageKey);
+    
+        if (event == null) 
+            throw new EventNotFoundException("Event not found with S3 Image Key: " + s3ImageKey);
+
+        EventResponseDTO eventResponseDTO = eventMapper.toResponseDTO(event);
+                
+        // return the response dto
+        return eventResponseDTO;
+    }
+
+    @Override
+    public List<EventResponseDTO> getUpcomingEvents() {
+        LocalDate today = LocalDate.now();
+        List<Event> upcomingEvents = eventRepository.findUpcomingEvents(today);
+        
+        if (upcomingEvents.isEmpty())
+            throw new EventNotFoundException("No upcoming events found");
+
+        return upcomingEvents.stream()
+                .map(eventMapper::toResponseDTO)
+                .toList();
+    }
+
+    @Override
+    public List<EventResponseDTO> getEventsByMonth(int year, int month) {
+        if (month < 1 || month > 12)
+            throw new InvalidRequestException("Invalid month. Month must be between 1 and 12");
+            
+        List<Event> events = eventRepository.findEventsByMonth(year, month);
+    
+        return events.stream()
+                .map(eventMapper::toResponseDTO)
+                .toList();
+    }
+
+    @Override
+    public List<EventResponseDTO> getPastEvents() {
+        LocalDate today = LocalDate.now();
+        List<Event> pastEvents = eventRepository.findPastEvents(today);
+        
+
+
+        return pastEvents.stream()
+                .map(eventMapper::toResponseDTO)
+                .toList();
     }
 
 }
