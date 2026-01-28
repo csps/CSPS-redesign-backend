@@ -45,4 +45,5 @@ public class MerchVariantItem {
 
     @Column(nullable = false)
     private Double price;
+
 }
