@@ -10,6 +10,8 @@ import org.mapstruct.Mapping;
 public interface OrderItemMapper {
 
     @Mapping(source = "order.orderId", target = "orderId")
+    @Mapping(source = "order.student.studentId", target = "studentId")
+    @Mapping(target = "studentName", expression = "java(orderItem.getOrder().getStudent().getUserAccount().getUserProfile().getFirstName() + \" \" + orderItem.getOrder().getStudent().getUserAccount().getUserProfile().getLastName())")
     @Mapping(source = "merchVariantItem.merchVariant.merch.merchName", target = "merchName")
     @Mapping(source = "merchVariantItem.merchVariant.merch.merchType", target = "merchType")
     @Mapping(source = "merchVariantItem.merchVariant.color", target = "color")

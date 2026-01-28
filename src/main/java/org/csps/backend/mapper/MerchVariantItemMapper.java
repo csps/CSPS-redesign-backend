@@ -19,6 +19,7 @@ public interface MerchVariantItemMapper {
     @Mapping(target = "size", source = "size")
     @Mapping(target = "stockQuantity", source = "stockQuantity")
     @Mapping(target = "price", source = "price")
+    @Mapping(target="s3ImageKey", source="merchVariant.s3ImageKey")
     MerchVariantItemResponseDTO toResponseDto(MerchVariantItem item);
 
 }
