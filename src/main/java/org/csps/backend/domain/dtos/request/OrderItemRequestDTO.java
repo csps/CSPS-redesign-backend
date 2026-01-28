@@ -1,5 +1,7 @@
 package org.csps.backend.domain.dtos.request;
 
+import org.csps.backend.domain.enums.OrderStatus;
+
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -24,6 +26,8 @@ public class OrderItemRequestDTO {
     @Min(value = 1, message = "Quantity must be at least 1")
     @NotNull(message = "Quantity is required")
     private Integer quantity;
+
+    private OrderStatus orderStatus;
     
     @NotNull(message = "Price at purchase is required")
     @Min(value = 0, message = "Price must be non-negative")

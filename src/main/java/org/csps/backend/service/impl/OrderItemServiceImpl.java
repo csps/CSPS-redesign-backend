@@ -144,6 +144,28 @@ public class OrderItemServiceImpl implements OrderItemService {
     
     @Override
     @Transactional
+    public OrderItemResponseDTO updateOrderItemStatus(Long id, OrderItemRequestDTO orderItemRequestDTO) {
+        if (id == null || id <= 0) {
+            throw new InvalidRequestException("Invalid order item ID");
+        }
+        
+        if (orderItemRequestDTO == null || orderItemRequestDTO.getOrderStatus() == null) {
+            throw new InvalidRequestException("Order status is required");
+        }
+        
+        OrderItem orderItem = orderItemRepository.findById(id)
+            .orElseThrow(() -> new OrderItemNotFoundException("Order item not found"));
+        
+        orderItem.setOrderStatus(orderItemRequestDTO.getOrderStatus());
+        orderItem.setUpdatedAt(LocalDateTime.now());
+        
+        OrderItem updatedOrderItem = orderItemRepository.save(orderItem);
+        return orderItemMapper.toResponseDTO(updatedOrderItem);
+    }
+
+
+    @Override
+    @Transactional
     public void deleteOrderItem(Long id) {
         if (id == null || id <= 0) {
             throw new InvalidRequestException("Invalid order item ID");

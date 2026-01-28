@@ -28,7 +28,9 @@ public interface OrderItemService {
      * Get paginated order items for a specific order.
      */
     Page<OrderItemResponseDTO> getOrderItemsByOrderIdPaginated(Long orderId, Pageable pageable);
-  
+    
+    OrderItemResponseDTO updateOrderItemStatus(Long id, OrderItemRequestDTO orderItemRequestDTO);
+
     /**
      * Delete order item.
      */
