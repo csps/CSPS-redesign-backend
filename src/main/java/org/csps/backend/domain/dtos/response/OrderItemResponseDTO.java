@@ -3,6 +3,7 @@ package org.csps.backend.domain.dtos.response;
 import java.time.LocalDateTime;
 
 import org.csps.backend.domain.enums.MerchType;
+import org.csps.backend.domain.enums.OrderStatus;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 
@@ -21,6 +22,10 @@ public class OrderItemResponseDTO {
     
     private Long orderId;
     
+    private String studentId;
+    
+    private String studentName;
+    
     private String merchName;
     
     private String color;
@@ -32,6 +37,8 @@ public class OrderItemResponseDTO {
     private Integer quantity;
         
     private Double totalPrice;
+
+    private OrderStatus orderStatus;
     
     private String s3ImageKey;
 

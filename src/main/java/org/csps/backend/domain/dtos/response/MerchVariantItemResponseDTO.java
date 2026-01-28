@@ -16,4 +16,5 @@ public class MerchVariantItemResponseDTO {
     private ClothingSizing size;
     private Integer stockQuantity;
     private Double price;
+    private String s3ImageKey;
 }
