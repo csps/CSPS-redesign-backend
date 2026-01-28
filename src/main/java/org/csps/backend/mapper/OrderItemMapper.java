@@ -22,6 +22,7 @@ public interface OrderItemMapper {
     @Mapping(target = "totalPrice", expression = "java(orderItem.getQuantity() * orderItem.getPriceAtPurchase())")
     @Mapping(source = "createdAt", target = "createdAt")
     @Mapping(source = "updatedAt", target = "updatedAt")
+    @Mapping(source="orderStatus", target="orderStatus")
     OrderItemResponseDTO toResponseDTO(OrderItem orderItem);
 
     @Mapping(source="merchVariantItemId", target="merchVariantItem.merchVariantItemId")

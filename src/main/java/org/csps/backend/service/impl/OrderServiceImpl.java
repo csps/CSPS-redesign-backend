@@ -60,7 +60,6 @@ public class OrderServiceImpl implements OrderService {
                 .student(student)
                 .orderDate(LocalDateTime.now())
                 .totalPrice(0.0) // Will be updated after adding order items
-                .orderStatus(OrderStatus.PENDING)
                 .updatedAt(LocalDateTime.now())
                 .build();
 

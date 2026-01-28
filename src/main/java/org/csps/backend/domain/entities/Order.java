@@ -28,7 +28,6 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "orders", indexes = 
 {
-    @Index(name = "idx_order_status", columnList = "order_status"), 
     @Index(name = "idx_student_id", columnList = "student_id")
 }
 )
@@ -52,10 +51,6 @@ public class Order {
     
     @Column(nullable = false)
     private int quantity;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private OrderStatus orderStatus;
     
     @Column(nullable = false)
     private LocalDateTime orderDate;

@@ -28,7 +28,6 @@ public class OrderResponseDTO {
     @JsonAlias("order_date")
     private LocalDate orderDate;
     
-    private OrderStatus orderStatus;
 
 
     @JsonAlias("order_items")
