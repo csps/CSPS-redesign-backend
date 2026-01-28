@@ -69,6 +69,32 @@ public class EventController {
         return GlobalResponseBuilder.buildResponse(message, events, HttpStatus.OK);
     }
 
+    @GetMapping("/upcoming")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<GlobalResponseBuilder<List<EventResponseDTO>>> getUpcomingEvents() {
+        List<EventResponseDTO> events = eventService.getUpcomingEvents();
+        String message = "Upcoming events retrieved successfully";
+        return GlobalResponseBuilder.buildResponse(message, events, HttpStatus.OK);
+    }
+
+    @GetMapping("/by-month")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<GlobalResponseBuilder<List<EventResponseDTO>>> getEventsByMonth(
+        @RequestParam int year,
+        @RequestParam int month) {
+        List<EventResponseDTO> events = eventService.getEventsByMonth(year, month);
+        String message = "Events for " + month + "/" + year + " retrieved successfully";
+        return GlobalResponseBuilder.buildResponse(message, events, HttpStatus.OK);
+    }
+
+    @GetMapping("/past")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<GlobalResponseBuilder<List<EventResponseDTO>>> getPastEvents() {
+        List<EventResponseDTO> events = eventService.getPastEvents();
+        String message = "Past events retrieved successfully";
+        return GlobalResponseBuilder.buildResponse(message, events, HttpStatus.OK);
+    }
+
     @PostMapping("/add")
     @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
     public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> addEvent(

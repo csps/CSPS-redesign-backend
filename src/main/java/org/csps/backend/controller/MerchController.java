@@ -9,7 +9,6 @@ import org.csps.backend.domain.dtos.request.MerchVariantRequestDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.MerchDetailedResponseDTO;
 import org.csps.backend.domain.dtos.response.MerchSummaryResponseDTO;
-import org.csps.backend.domain.enums.ClothingSizing;
 import org.csps.backend.domain.enums.MerchType;
 import org.csps.backend.service.MerchService;
 import org.springframework.http.HttpStatus;
@@ -27,11 +26,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.validation.Valid;
-
 import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/merch")
@@ -53,21 +51,21 @@ public class MerchController {
             @RequestParam(required = true) Double basePrice,
             @RequestParam(required = false) String s3ImageKey,
             @RequestParam(required = true) MultipartFile merchImage,
-            @RequestParam String variantsJson,
+            @RequestParam String variants,
             @RequestParam(required = true) MultipartFile[] variantImages
     ) throws IOException {
         // Parse variants JSON to list
         ObjectMapper mapper = new ObjectMapper();
-        List<MerchVariantRequestDTO> variants = mapper.readValue(
-            variantsJson, 
+        List<MerchVariantRequestDTO> variantsList = mapper.readValue(
+            variants, 
             new TypeReference<List<MerchVariantRequestDTO>>() {}
         );
 
 
         // Assign variant images to each variant
         if (variantImages != null) {
-            for (int i = 0; i < variants.size() && i < variantImages.length; i++) {
-                variants.get(i).setVariantImage(variantImages[i]);
+            for (int i = 0; i < variantsList.size() && i < variantImages.length; i++) {
+                variantsList.get(i).setVariantImage(variantImages[i]);
             }
         }
 
@@ -80,7 +78,7 @@ public class MerchController {
                 .basePrice(basePrice)
                 .s3ImageKey(s3ImageKey)
                 .merchImage(merchImage)
-                .merchVariantRequestDto(variants)
+                .merchVariantRequestDto(variantsList)
                 .build();
 
 
