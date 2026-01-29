@@ -42,7 +42,7 @@ public interface OrderItemService {
     /**
      * Update order item status.
      */
-    OrderItemResponseDTO updateOrderItemStatus(Long id, OrderItemRequestDTO orderItemRequestDTO);
+    OrderItemResponseDTO updateOrderItemStatus(Long id, OrderStatus status);
 
 
     

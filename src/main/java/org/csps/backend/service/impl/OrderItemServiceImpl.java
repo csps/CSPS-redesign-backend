@@ -5,17 +5,17 @@ import java.util.List;
 
 import org.csps.backend.domain.dtos.request.OrderItemRequestDTO;
 import org.csps.backend.domain.dtos.response.OrderItemResponseDTO;
+import org.csps.backend.domain.entities.MerchVariantItem;
 import org.csps.backend.domain.entities.Order;
 import org.csps.backend.domain.entities.OrderItem;
-import org.csps.backend.domain.entities.MerchVariantItem;
 import org.csps.backend.domain.enums.OrderStatus;
 import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.exception.OrderItemNotFoundException;
 import org.csps.backend.exception.OrderNotFoundException;
 import org.csps.backend.mapper.OrderItemMapper;
+import org.csps.backend.repository.MerchVariantItemRepository;
 import org.csps.backend.repository.OrderItemRepository;
 import org.csps.backend.repository.OrderRepository;
-import org.csps.backend.repository.MerchVariantItemRepository;
 import org.csps.backend.service.OrderItemService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -158,19 +158,19 @@ public class OrderItemServiceImpl implements OrderItemService {
     
     @Override
     @Transactional
-    public OrderItemResponseDTO updateOrderItemStatus(Long id, OrderItemRequestDTO orderItemRequestDTO) {
+    public OrderItemResponseDTO updateOrderItemStatus(Long id, OrderStatus status) {
         if (id == null || id <= 0) {
             throw new InvalidRequestException("Invalid order item ID");
         }
         
-        if (orderItemRequestDTO == null || orderItemRequestDTO.getOrderStatus() == null) {
+        if (status == null) {
             throw new InvalidRequestException("Order status is required");
         }
         
         OrderItem orderItem = orderItemRepository.findById(id)
             .orElseThrow(() -> new OrderItemNotFoundException("Order item not found"));
         
-        orderItem.setOrderStatus(orderItemRequestDTO.getOrderStatus());
+        orderItem.setOrderStatus(status);
         orderItem.setUpdatedAt(LocalDateTime.now());
         
         OrderItem updatedOrderItem = orderItemRepository.save(orderItem);
