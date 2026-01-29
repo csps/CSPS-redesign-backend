@@ -6,6 +6,8 @@ import java.time.LocalTime;
 
 import org.csps.backend.domain.enums.EventStatus;
 import org.csps.backend.domain.enums.EventType;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -47,6 +49,9 @@ public class Event {
     private LocalDate eventDate;
 
     @Column(nullable = false)
+    private String s3ImageKey;
+
+    @Column(nullable = false)
     private LocalTime startTime;
 
     @Column(nullable = false)
@@ -60,9 +65,11 @@ public class Event {
     @Enumerated(EnumType.STRING)
     private EventStatus eventStatus;
 
+    @CreationTimestamp
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;    
     

@@ -4,23 +4,26 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.csps.backend.domain.dtos.request.OrderItemRequestDTO;
 import org.csps.backend.domain.dtos.request.OrderPostRequestDTO;
-import org.csps.backend.domain.dtos.request.PatchOrderRequestDTO;
+import org.csps.backend.domain.dtos.response.OrderItemResponseDTO;
 import org.csps.backend.domain.dtos.response.OrderResponseDTO;
-import org.csps.backend.domain.entities.MerchVariant;
 import org.csps.backend.domain.entities.Order;
+import org.csps.backend.domain.entities.OrderItem;
 import org.csps.backend.domain.entities.Student;
 import org.csps.backend.domain.enums.OrderStatus;
-import org.csps.backend.exception.InvalidOrderStatusTransitionException;
-import org.csps.backend.exception.MerchVariantNotFoundException;
+import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.exception.OrderNotFoundException;
-import org.csps.backend.exception.OutOfStockException;
 import org.csps.backend.exception.StudentNotFoundException;
+import org.csps.backend.exception.CartItemNotFoundException;
 import org.csps.backend.mapper.OrderMapper;
-import org.csps.backend.repository.MerchVariantRepository;
 import org.csps.backend.repository.OrderRepository;
 import org.csps.backend.repository.StudentRepository;
 import org.csps.backend.service.OrderService;
+import org.csps.backend.service.OrderItemService;
+import org.csps.backend.service.CartItemService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
@@ -32,178 +35,138 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
-
     private final StudentRepository studentRepository;
-    private final MerchVariantRepository merchVariantRepository;
+    private final OrderItemService orderItemService;
+    private final CartItemService cartItemService;
 
-    // Business Logic Validation Methods
-    private void validateOrderCreation(OrderPostRequestDTO orderPostRequestDTO, MerchVariant merchVariant) {
-        // Validate quantity is positive
-        if (orderPostRequestDTO.getQuantity() <= 0) {
-            throw new IllegalArgumentException("Quantity must be greater than 0");
-        }
-        
-        // Validate stock availability
-        if (merchVariant.getStockQuantity() < orderPostRequestDTO.getQuantity()) {
-            throw new OutOfStockException("Insufficient stock. Available: " + merchVariant.getStockQuantity() + 
-                                       ", Requested: " + orderPostRequestDTO.getQuantity());
-        }
-        
-        // Validate merch variant is active/available
-        if (merchVariant.getStockQuantity() == 0) {
-            throw new OutOfStockException("Item is out of stock");
-        }
-    }
-
-    private void validateOrderStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
-        // Define valid status transitions
-        switch (currentStatus) {
-            case PENDING:
-                if (newStatus != OrderStatus.TO_BE_CLAIMED && newStatus != OrderStatus.CANCELLED) {
-                    throw new InvalidOrderStatusTransitionException(
-                        "Cannot change status from " + currentStatus + " to " + newStatus);
-                }
-                break;
-            case TO_BE_CLAIMED:
-                if (newStatus != OrderStatus.CLAIMED && newStatus != OrderStatus.CANCELLED) {
-                    throw new InvalidOrderStatusTransitionException(
-                        "Cannot change status from " + currentStatus + " to " + newStatus);
-                }
-                break;
-            case CLAIMED:
-                throw new InvalidOrderStatusTransitionException(
-                    "Cannot modify order with status " + currentStatus + ". Order is already claimed.");
-            case CANCELLED:
-                throw new InvalidOrderStatusTransitionException(
-                    "Cannot modify order with status " + currentStatus + ". Order is cancelled.");
-            default:
-                throw new InvalidOrderStatusTransitionException("Invalid current status: " + currentStatus);
-        }
-    }
-
-    private void validateOrderModification(Order order) {
-        // Cannot modify orders that are already claimed or cancelled
-        if (order.getOrderStatus() == OrderStatus.CLAIMED) {
-            throw new InvalidOrderStatusTransitionException("Cannot modify order that is already claimed");
-        }
-        if (order.getOrderStatus() == OrderStatus.CANCELLED) {
-            throw new InvalidOrderStatusTransitionException("Cannot modify order that is cancelled");
-        }
-    }
 
     @Override
     @Transactional
-    public OrderResponseDTO postOrder(String studentId, OrderPostRequestDTO orderPostRequestDTO) {
-        Long merchVariantId = orderPostRequestDTO.getMerchVariantId();
-
-        if (merchVariantId == null) {
-            throw new MerchVariantNotFoundException("Merch Variant not found");
-        }   
-
-        MerchVariant merchVariant = merchVariantRepository.findById(merchVariantId)
-                .orElseThrow(() -> new MerchVariantNotFoundException("Merch Variant not found"));
+    public OrderResponseDTO createOrder(String studentId, OrderPostRequestDTO orderRequests) {
+        if (studentId == null || studentId.isEmpty()) {
+            throw new InvalidRequestException("Student ID is required");
+        }
         
-        // Apply business logic validation
-        validateOrderCreation(orderPostRequestDTO, merchVariant);
-
-        merchVariant.setStockQuantity(merchVariant.getStockQuantity() - orderPostRequestDTO.getQuantity());
-
-        merchVariantRepository.save(merchVariant);
-
+        if (orderRequests == null || orderRequests.getOrderItems() == null || orderRequests.getOrderItems().isEmpty()) {
+            throw new InvalidRequestException("At least one order request is required");
+        }
+        
+        // Validate student exists
         Student student = studentRepository.findByStudentId(studentId)
                 .orElseThrow(() -> new StudentNotFoundException("Student not found"));
+        
+        // Create order
+        Order order = Order.builder()
+                .student(student)
+                .orderDate(LocalDateTime.now())
+                .totalPrice(0.0) // Will be updated after adding order items
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        // Save order first to get the generated orderId
+        Order savedOrder = orderRepository.save(order);
+
+        List<OrderItemRequestDTO> orderItemRequests = orderRequests.getOrderItems();
+        
+        // Now set the orderId on all item requests
+        orderItemRequests.forEach(req -> {
+            req.setOrderId(savedOrder.getOrderId());
+        });
+
+        double totalPrice = 0.0;
+        for (OrderItemRequestDTO itemRequest : orderItemRequests) {
+            OrderItemResponseDTO orderItemResponse = orderItemService.createOrderItem(itemRequest);
+            totalPrice += orderItemResponse.getTotalPrice();
             
-        Order order = orderMapper.toEntity(orderPostRequestDTO);
-        order.setTotalPrice(merchVariant.getPrice() * orderPostRequestDTO.getQuantity());
-        order.setStudent(student);
-        order.setMerchVariant(merchVariant);
-        order.setOrderDate(LocalDate.now());
-        order.setOrderStatus(OrderStatus.PENDING);
-        order.setCreatedAt(LocalDateTime.now());
-        order.setUpdatedAt(LocalDateTime.now());
-        order = orderRepository.save(order);
-        return orderMapper.toResponseDTO(order);
+            // Remove the item from cart after successful order item creation
+            try {
+                cartItemService.removeCartItem(studentId, itemRequest.getMerchVariantItemId());
+            } catch (CartItemNotFoundException e) {
+                // Item not in cart is OK - might have been removed already
+                System.out.println("Item not found in cart (already removed): " + itemRequest.getMerchVariantItemId());
+            } catch (Exception e) {
+                // Log other failures but don't fail the order
+                System.err.println("Error: Failed to remove item from cart after ordering: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+
+        savedOrder.setTotalPrice(totalPrice);
+        orderRepository.save(savedOrder);
+        
+        return orderMapper.toResponseDTO(savedOrder);
     }
 
     @Override
     public List<OrderResponseDTO> getAllOrders() {
-        List<OrderResponseDTO> orderResponseDTOs = orderRepository.findAll()
+        return orderRepository.findAll()
                 .stream()
                 .map(orderMapper::toResponseDTO)
                 .toList();
-        return orderResponseDTOs;
+    }
+
+    @Override
+    public Page<OrderResponseDTO> getAllOrdersPaginated(Pageable pageable) {
+        Page<Order> orders = orderRepository.findAll(pageable);
+        return orders.map(orderMapper::toResponseDTO);
     }
 
     @Override
     public OrderResponseDTO getOrderById(Long orderId) {
+        if (orderId == null || orderId <= 0) {
+            throw new InvalidRequestException("Invalid order ID");
+        }
+        
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found"));
         
-        OrderResponseDTO orderResponseDTO = orderMapper.toResponseDTO(order);
-        return orderResponseDTO;
-    }
-
-    @Override
-    @Transactional
-    public OrderResponseDTO deleteOrder(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException("Order not found"));
-        
-        // Validate order can be deleted (only PENDING and CANCELLED orders can be deleted)
-        if (order.getOrderStatus() == OrderStatus.CLAIMED) {
-            throw new InvalidOrderStatusTransitionException("Cannot delete order that is already claimed");
-        }
-        if (order.getOrderStatus() == OrderStatus.TO_BE_CLAIMED) {
-            throw new InvalidOrderStatusTransitionException("Cannot delete order that is ready to be claimed");
-        }
-        
-        orderRepository.delete(order);
-
-        OrderResponseDTO orderResponseDTO = orderMapper.toResponseDTO(order);
-        return orderResponseDTO;
-    }
-    @Override
-    @Transactional
-    public OrderResponseDTO patchOrder(Long orderId, PatchOrderRequestDTO patchOrderRequestDTO) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException("Order not found"));
-        
-        // Validate order can be modified
-        validateOrderModification(order);
-        
-        // Validate status transition
-        OrderStatus currentStatus = order.getOrderStatus();
-        OrderStatus newStatus = patchOrderRequestDTO.getOrderStatus();
-        
-        if (currentStatus != newStatus) {
-            validateOrderStatusTransition(currentStatus, newStatus);
-        }
-        
-        order.setOrderStatus(patchOrderRequestDTO.getOrderStatus());
-        order.setUpdatedAt(LocalDateTime.now());
-        order = orderRepository.save(order);
-
-        OrderResponseDTO orderResponseDTO = orderMapper.toResponseDTO(order);
-        return orderResponseDTO;
+        return orderMapper.toResponseDTO(order);
     }
 
     @Override
     public List<OrderResponseDTO> getOrdersByStudentId(String studentId) {
-        List<OrderResponseDTO> orderResponseDTOs = orderRepository.findByStudentId(studentId)
+        if (studentId == null || studentId.isEmpty()) {
+            throw new InvalidRequestException("Student ID is required");
+        }
+        
+        // Verify student exists
+        if (!studentRepository.existsById(studentId)) {
+            throw new StudentNotFoundException("Student not found");
+        }
+        
+        return orderRepository.findByStudentId(studentId)
                 .stream()
                 .map(orderMapper::toResponseDTO)
                 .toList();
-        return orderResponseDTOs;
     }
 
     @Override
-    
-    public List<OrderResponseDTO> getOrdersByOrderStatus(OrderStatus orderStatus) {
-        List<OrderResponseDTO> orderResponseDTOs = orderRepository.findByOrderStatus(orderStatus)
-                .stream()
-                .map(orderMapper::toResponseDTO)
-                .toList();
-        return orderResponseDTOs;
+    public Page<OrderResponseDTO> getOrdersByStudentIdPaginated(String studentId, Pageable pageable) {
+        if (studentId == null || studentId.isEmpty()) {
+            throw new InvalidRequestException("Student ID is required");
+        }
+        
+        // Verify student exists
+        if (!studentRepository.existsById(studentId)) {
+            throw new StudentNotFoundException("Student not found");
+        }
+        
+        Page<Order> orders = orderRepository.findByStudentId(studentId, pageable);
+        return orders.map(orderMapper::toResponseDTO);
     }
 
+    @Override
+    @Transactional
+    public void deleteOrder(Long orderId) {
+        if (orderId == null || orderId <= 0) {
+            throw new InvalidRequestException("Invalid order ID");
+        }
+        
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException("Order not found"));
+        
+        // Delete cascades to order items due to orphanRemoval = true
+        orderRepository.delete(order);
+    }
 }
+

@@ -7,16 +7,18 @@ import java.util.List;
 
 import org.csps.backend.domain.dtos.request.EventPostRequestDTO;
 import org.csps.backend.domain.dtos.request.EventUpdateRequestDTO;
-import org.csps.backend.domain.dtos.request.InvalidRequestException;
 import org.csps.backend.domain.dtos.response.EventResponseDTO;
 import org.csps.backend.domain.entities.Event;
 import org.csps.backend.domain.enums.EventStatus;
 import org.csps.backend.domain.enums.EventType;
 import org.csps.backend.exception.EventNotFoundException;
+import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.mapper.EventMapper;
 import org.csps.backend.repository.EventRepository;
 import org.csps.backend.service.EventService;
+import org.csps.backend.service.S3Service;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -27,10 +29,11 @@ public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
+    private final S3Service s3Service;
 
     @Override
     @Transactional
-    public EventResponseDTO postEvent(EventPostRequestDTO eventPostRequestDTO) {
+    public EventResponseDTO postEvent(EventPostRequestDTO eventPostRequestDTO, MultipartFile eventImage) throws Exception {
         // convert the request to entity
         Event event = eventMapper.toEntity(eventPostRequestDTO);
 
@@ -72,6 +75,7 @@ public class EventServiceImpl implements EventService {
 
         event.setCreatedAt(LocalDateTime.now());
         event.setUpdatedAt(LocalDateTime.now());
+        event.setS3ImageKey("placeholder");
         
         LocalTime startTime = eventPostRequestDTO.getStartTime();
         LocalTime endTime = eventPostRequestDTO.getEndTime();
@@ -80,12 +84,18 @@ public class EventServiceImpl implements EventService {
             throw new InvalidRequestException("Invalid Time Range");
         }
 
-        // persist the entity
-        eventRepository.save(event);
+        // persist the entity first
+        Event savedEvent = eventRepository.save(event);
 
+        // upload image to S3 if provided
+        if (eventImage != null && !eventImage.isEmpty()) {
+            String s3ImageKey = s3Service.uploadFile(eventImage, savedEvent.getEventId(), "event");
+            savedEvent.setS3ImageKey(s3ImageKey);
+            eventRepository.save(savedEvent);
+        }
 
         // convert the entity into response dto
-        EventResponseDTO eventResponseDTO = eventMapper.toResponseDTO(event);
+        EventResponseDTO eventResponseDTO = eventMapper.toResponseDTO(savedEvent);
 
         return eventResponseDTO;
     }
@@ -132,7 +142,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
-    public EventResponseDTO putEvent(Long eventId, EventUpdateRequestDTO eventUpdateRequestDTO) {
+    public EventResponseDTO putEvent(Long eventId, EventUpdateRequestDTO eventUpdateRequestDTO, MultipartFile eventImage) throws Exception {
     
         // find the event by id
         Event event = eventRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
@@ -194,6 +204,12 @@ public class EventServiceImpl implements EventService {
             throw new InvalidRequestException("Event already exists with the same date and time");
         }
 
+        // handle image upload if provided
+        if (eventImage != null && !eventImage.isEmpty()) {
+            String s3ImageKey = s3Service.uploadFile(eventImage, event.getEventId(), "event");
+            event.setS3ImageKey(s3ImageKey);
+        }
+
         // save the event
         eventRepository.save(event);
 
@@ -206,7 +222,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
-    public EventResponseDTO patchEvent(Long eventId, EventUpdateRequestDTO eventUpdateRequestDTO) {
+    public EventResponseDTO patchEvent(Long eventId, EventUpdateRequestDTO eventUpdateRequestDTO, MultipartFile eventImage) throws Exception {
     
         // find the event by id
         Event event = eventRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
@@ -274,6 +290,12 @@ public class EventServiceImpl implements EventService {
             throw new InvalidRequestException("Event already exists with the same date and time");
         }
 
+        // handle image upload if provided
+        if (eventImage != null && !eventImage.isEmpty()) {
+            String s3ImageKey = s3Service.uploadFile(eventImage, event.getEventId(), "event");
+            event.setS3ImageKey(s3ImageKey);
+        }
+
         // save the event
         eventRepository.save(event);
 
@@ -297,6 +319,56 @@ public class EventServiceImpl implements EventService {
                 
         // return the response dto
         return eventResponseDTOs;
+    }
+
+    @Override
+    public EventResponseDTO getEventByS3ImageKey(String s3ImageKey) {
+        Event event = eventRepository.findByS3ImageKey(s3ImageKey);
+    
+        if (event == null) 
+            throw new EventNotFoundException("Event not found with S3 Image Key: " + s3ImageKey);
+
+        EventResponseDTO eventResponseDTO = eventMapper.toResponseDTO(event);
+                
+        // return the response dto
+        return eventResponseDTO;
+    }
+
+    @Override
+    public List<EventResponseDTO> getUpcomingEvents() {
+        LocalDate today = LocalDate.now();
+        List<Event> upcomingEvents = eventRepository.findUpcomingEvents(today);
+        
+        if (upcomingEvents.isEmpty())
+            throw new EventNotFoundException("No upcoming events found");
+
+        return upcomingEvents.stream()
+                .map(eventMapper::toResponseDTO)
+                .toList();
+    }
+
+    @Override
+    public List<EventResponseDTO> getEventsByMonth(int year, int month) {
+        if (month < 1 || month > 12)
+            throw new InvalidRequestException("Invalid month. Month must be between 1 and 12");
+            
+        List<Event> events = eventRepository.findEventsByMonth(year, month);
+    
+        return events.stream()
+                .map(eventMapper::toResponseDTO)
+                .toList();
+    }
+
+    @Override
+    public List<EventResponseDTO> getPastEvents() {
+        LocalDate today = LocalDate.now();
+        List<Event> pastEvents = eventRepository.findPastEvents(today);
+        
+
+
+        return pastEvents.stream()
+                .map(eventMapper::toResponseDTO)
+                .toList();
     }
 
 }

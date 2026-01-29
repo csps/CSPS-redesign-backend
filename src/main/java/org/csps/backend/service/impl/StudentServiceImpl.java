@@ -13,10 +13,13 @@ import org.csps.backend.exception.StudentNotFoundException;
 import org.csps.backend.exception.UserAlreadyExistsException;
 import org.csps.backend.mapper.StudentMapper;
 import org.csps.backend.repository.StudentRepository;
+import org.csps.backend.service.CartService;
 import org.csps.backend.service.StudentService;
 import org.csps.backend.service.UserService;
 import org.springframework.stereotype.Service;
 
+import jakarta.transaction.TransactionScoped;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -26,11 +29,12 @@ public class StudentServiceImpl implements StudentService {
 
    private final StudentMapper studentMapper;
    private final StudentRepository studentRepository;
-
    private final UserService userService;
+   private final CartService cartService;
     
     @Override
-    public StudentResponseDTO createStudentProfile(@Valid StudentRequestDTO studentRequestDTO) {
+    @Transactional
+    public StudentResponseDTO createStudent(@Valid StudentRequestDTO studentRequestDTO) {
 
         // Check if the student already exists
         String studentId = studentRequestDTO.getStudentId().trim();
@@ -58,9 +62,14 @@ public class StudentServiceImpl implements StudentService {
         // Map Student entity
         Student student = studentMapper.toEntity(studentRequestDTO);
         student.setUserAccount(savedUserAccount);
+        student.setStudentId(studentId);
+        
     
         // Persist Student
         student = studentRepository.save(student);
+        
+        // Create Cart for the student
+        cartService.createCart(studentId);
     
         // Map to DTO
         return studentMapper.toResponseDTO(student);

@@ -17,10 +17,12 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 public class EventController {
 
     private final EventService eventService;
+    private final ObjectMapper objectMapper;
 
 
     @GetMapping("/all")
@@ -49,6 +52,14 @@ public class EventController {
         return GlobalResponseBuilder.buildResponse(message, event, HttpStatus.OK);
     }
 
+    @GetMapping("/image/{s3ImageKey}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> getEventByS3ImageKey(@PathVariable String s3ImageKey) {
+        EventResponseDTO event = eventService.getEventByS3ImageKey(s3ImageKey);
+        String message = "Event retrieved successfully";
+        return GlobalResponseBuilder.buildResponse(message, event, HttpStatus.OK);
+    }
+
     @GetMapping("")
     @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
     public ResponseEntity<GlobalResponseBuilder<List<EventResponseDTO>>> getEventByDate(@RequestParam LocalDate eventDate) {
@@ -58,10 +69,39 @@ public class EventController {
         return GlobalResponseBuilder.buildResponse(message, events, HttpStatus.OK);
     }
 
+    @GetMapping("/upcoming")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<GlobalResponseBuilder<List<EventResponseDTO>>> getUpcomingEvents() {
+        List<EventResponseDTO> events = eventService.getUpcomingEvents();
+        String message = "Upcoming events retrieved successfully";
+        return GlobalResponseBuilder.buildResponse(message, events, HttpStatus.OK);
+    }
+
+    @GetMapping("/by-month")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<GlobalResponseBuilder<List<EventResponseDTO>>> getEventsByMonth(
+        @RequestParam int year,
+        @RequestParam int month) {
+        List<EventResponseDTO> events = eventService.getEventsByMonth(year, month);
+        String message = "Events for " + month + "/" + year + " retrieved successfully";
+        return GlobalResponseBuilder.buildResponse(message, events, HttpStatus.OK);
+    }
+
+    @GetMapping("/past")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<GlobalResponseBuilder<List<EventResponseDTO>>> getPastEvents() {
+        List<EventResponseDTO> events = eventService.getPastEvents();
+        String message = "Past events retrieved successfully";
+        return GlobalResponseBuilder.buildResponse(message, events, HttpStatus.OK);
+    }
+
     @PostMapping("/add")
     @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
-    public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> addEvent(@RequestBody EventPostRequestDTO eventPostRequestDTO) {
-        EventResponseDTO event = eventService.postEvent(eventPostRequestDTO);
+    public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> addEvent(
+            @RequestParam("event") String eventJson,
+            @RequestParam(value = "eventImage", required = false) MultipartFile eventImage) throws Exception {
+        EventPostRequestDTO eventPostRequestDTO = objectMapper.readValue(eventJson, EventPostRequestDTO.class);
+        EventResponseDTO event = eventService.postEvent(eventPostRequestDTO, eventImage);
         String message = "Event added successfully";
         return GlobalResponseBuilder.buildResponse(message, event, HttpStatus.CREATED);
     }
@@ -76,16 +116,24 @@ public class EventController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
-    public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> putEvent(@PathVariable Long id, @RequestBody EventUpdateRequestDTO eventUpdateRequestDTO) {
-        EventResponseDTO event = eventService.putEvent(id, eventUpdateRequestDTO);
+    public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> putEvent(
+            @PathVariable Long id,
+            @RequestParam("event") String eventJson,
+            @RequestParam(value = "eventImage", required = false) MultipartFile eventImage) throws Exception {
+        EventUpdateRequestDTO eventUpdateRequestDTO = objectMapper.readValue(eventJson, EventUpdateRequestDTO.class);
+        EventResponseDTO event = eventService.putEvent(id, eventUpdateRequestDTO, eventImage);
         String message = "Event updated successfully";
         return GlobalResponseBuilder.buildResponse(message, event, HttpStatus.OK);
     }
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
-    public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> patchEvent(@PathVariable Long id, @RequestBody EventUpdateRequestDTO eventUpdateRequestDTO) {
-        EventResponseDTO event = eventService.patchEvent(id, eventUpdateRequestDTO);
+    public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> patchEvent(
+            @PathVariable Long id,
+            @RequestParam("event") String eventJson,
+            @RequestParam(value = "eventImage", required = false) MultipartFile eventImage) throws Exception {
+        EventUpdateRequestDTO eventUpdateRequestDTO = objectMapper.readValue(eventJson, EventUpdateRequestDTO.class);
+        EventResponseDTO event = eventService.patchEvent(id, eventUpdateRequestDTO, eventImage);
         String message = "Event patched successfully";
         return GlobalResponseBuilder.buildResponse(message, event, HttpStatus.OK);
     }

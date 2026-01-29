@@ -1,16 +1,23 @@
 package org.csps.backend.domain.dtos.request;
 
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
+import java.util.List;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class OrderPostRequestDTO {
-    private String studentId;
     
-    @NotNull(message = "MerchVariantId is required")
-    private Long merchVariantId;
     
-    @Min(value = 1, message = "Quantity must be at least 1")
-    private int quantity;    
+    @NotEmpty(message = "At least one order item is required")
+    @Valid
+    private List<OrderItemRequestDTO> orderItems;
 }
+

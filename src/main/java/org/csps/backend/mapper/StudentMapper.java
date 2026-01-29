@@ -14,6 +14,8 @@ public interface StudentMapper {
     StudentResponseDTO toResponseDTO(Student student);
 
     // DTO → Student
+    @Mapping(source = "studentId", target = "studentId")
+    @Mapping(source = "yearLevel", target = "yearLevel")
     @Mapping(source = "userRequestDTO", target = "userAccount")
     Student toEntity(StudentRequestDTO studentRequestDTO);
 

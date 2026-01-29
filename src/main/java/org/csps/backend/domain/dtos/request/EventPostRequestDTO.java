@@ -5,6 +5,7 @@ import java.time.LocalTime;
 
 import org.csps.backend.domain.enums.EventStatus;
 import org.csps.backend.domain.enums.EventType;
+import org.springframework.web.multipart.MultipartFile;
 
 import lombok.Data;
 
@@ -19,4 +20,5 @@ public class EventPostRequestDTO {
     private LocalTime endTime;
     private EventType eventType;
     private EventStatus eventStatus;
+    private MultipartFile eventImage;
 }

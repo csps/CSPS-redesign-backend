@@ -37,13 +37,21 @@ public class UserServiceImpl implements UserService {
     // Create User (for students atm, will do for Admin soon)
     @Override
     public UserAccount createUser(StudentRequestDTO student, UserRequestDTO userRequestDTO) {
+        // Validate inputs
+        if (userRequestDTO == null) {
+            throw new MissingFieldException("User Request DTO cannot be null!");
+        }
+        if (student == null) {
+            throw new MissingFieldException("Student Request DTO cannot be null!");
+        }
+        
         // check if username already exists
         String generatedUsername = userNameFormat + userRequestDTO.getFirstName();
         String firstName = userRequestDTO.getFirstName();
         String lastName = userRequestDTO.getLastName();
         String studentId = student.getStudentId();
         String email = userRequestDTO.getEmail();
-        
+
         boolean validEmail = false;
         // Validate first name
         if (firstName == null || firstName.isEmpty()) {

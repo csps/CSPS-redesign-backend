@@ -11,12 +11,13 @@ import java.util.List;
 
 @Builder
 @Entity
-@Table
+@Table(name = "merch", indexes = {
+    @Index(name = "idx_merch_type", columnList = "merch_type")
+})
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 public class Merch {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long merchId;
@@ -31,7 +32,12 @@ public class Merch {
     @Column(nullable = false)
     private MerchType merchType;
 
+    @Column(nullable = false)
+    private Double basePrice;
+
+    @Column(nullable = false)
+    private String s3ImageKey;  // S3 object key of the first variant's image - REQUIRED
+
     @OneToMany(mappedBy = "merch", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MerchVariant> merchVariantList;
-
 }

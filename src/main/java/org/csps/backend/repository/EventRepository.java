@@ -13,6 +13,29 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findByEventDate(LocalDate eventDate);
+    Event findByS3ImageKey(String s3ImageKey);
+    
+    @Query("""
+            SELECT e FROM Event e
+            WHERE e.eventDate >= :today
+            ORDER BY e.eventDate ASC, e.startTime ASC
+        """)
+    List<Event> findUpcomingEvents(@Param("today") LocalDate today);
+    
+    @Query("""
+            SELECT e FROM Event e
+            WHERE YEAR(e.eventDate) = :year AND MONTH(e.eventDate) = :month
+            ORDER BY e.eventDate ASC, e.startTime ASC
+        """)
+    List<Event> findEventsByMonth(@Param("year") int year, @Param("month") int month);
+    
+    @Query("""
+            SELECT e FROM Event e
+            WHERE e.eventDate < :today
+            ORDER BY e.eventDate DESC, e.startTime DESC
+        """)
+    List<Event> findPastEvents(@Param("today") LocalDate today);
+    
     @Query("""
             SELECT CASE WHEN COUNT(e) > 0 THEN TRUE ELSE FALSE END
             FROM Event e

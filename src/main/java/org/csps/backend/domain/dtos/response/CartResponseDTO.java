@@ -4,6 +4,7 @@ package org.csps.backend.domain.dtos.response;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,6 +18,6 @@ import lombok.NoArgsConstructor;
 public class CartResponseDTO {
     private String studentId;
 
-    @JsonAlias("cart_items")
+    @JsonProperty("items")
     private List<CartItemResponseDTO> cartItemResponseDTOs;
 }

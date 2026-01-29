@@ -2,18 +2,47 @@ package org.csps.backend.service;
 
 import java.util.List;
 
-import org.csps.backend.domain.dtos.request.OrderPostRequestDTO;
-import org.csps.backend.domain.dtos.request.PatchOrderRequestDTO;
 import org.csps.backend.domain.dtos.response.OrderResponseDTO;
-import org.csps.backend.domain.enums.OrderStatus;
+import org.csps.backend.domain.dtos.request.OrderPostRequestDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface OrderService {
 
-    OrderResponseDTO postOrder(String studentId, OrderPostRequestDTO orderPostRequestDTO);
+    /**
+     * Create one or more orders for a student.
+     * This creates Order(s) and delegates OrderItem creation to OrderItemService.
+     */
+     OrderResponseDTO createOrder(String studentId, OrderPostRequestDTO orderRequests);
+    
+    /**
+     * Get all orders (admin only).
+     */
     List<OrderResponseDTO> getAllOrders();
+    
+    /**
+     * Get paginated orders (admin only).
+     */
+    Page<OrderResponseDTO> getAllOrdersPaginated(Pageable pageable);
+    
+    /**
+     * Get order by ID.
+     */
     OrderResponseDTO getOrderById(Long orderId);
-    OrderResponseDTO deleteOrder(Long orderId);
-    OrderResponseDTO patchOrder(Long orderId, PatchOrderRequestDTO patchOrderRequestDTO);
+    
+    /**
+     * Get all orders for a specific student.
+     */
     List<OrderResponseDTO> getOrdersByStudentId(String studentId);
-    List<OrderResponseDTO> getOrdersByOrderStatus(OrderStatus orderStatus);
+    
+    /**
+     * Get paginated orders for a specific student.
+     */
+    Page<OrderResponseDTO> getOrdersByStudentIdPaginated(String studentId, Pageable pageable);
+    
+    /**
+     * Delete order and all its items.
+     */
+    void deleteOrder(Long orderId);
 }
+

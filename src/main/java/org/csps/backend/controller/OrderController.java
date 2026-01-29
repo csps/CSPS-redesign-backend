@@ -3,23 +3,22 @@ package org.csps.backend.controller;
 import java.util.List;
 
 import org.csps.backend.domain.dtos.request.OrderPostRequestDTO;
-import org.csps.backend.domain.dtos.request.PatchOrderRequestDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.OrderResponseDTO;
-import org.csps.backend.domain.enums.OrderStatus;
 import org.csps.backend.service.OrderService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
@@ -29,54 +28,68 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
 public class OrderController {
-    private final OrderService  orderService;
+    
+    private final OrderService orderService;
 
-    @PostMapping("/add")
+    /**
+     * Create one or more orders.
+     * Student can only create orders for themselves.
+     * After creation, add items via /api/order-items endpoint.
+     */
+    @PostMapping
     @PreAuthorize("hasRole('STUDENT')")
-    public ResponseEntity<GlobalResponseBuilder<OrderResponseDTO>> addOrder(@AuthenticationPrincipal String studentId, @Valid @RequestBody OrderPostRequestDTO orderPostRequestDTO) {
-        OrderResponseDTO orderResponseDTO = orderService.postOrder(studentId, orderPostRequestDTO);
-        return GlobalResponseBuilder.buildResponse("Order added successfully", orderResponseDTO, HttpStatus.CREATED);
+    public ResponseEntity<GlobalResponseBuilder<OrderResponseDTO>> createOrder(
+            @AuthenticationPrincipal String studentId,
+            @Valid @RequestBody OrderPostRequestDTO orderRequests) {
+        OrderResponseDTO responseDTO = orderService.createOrder(studentId, orderRequests);
+        return GlobalResponseBuilder.buildResponse("Order created successfully", responseDTO, HttpStatus.CREATED);
     }
 
-    @GetMapping("/all")
+    /**
+     * Get all orders (admin only).
+     * Query params: page (0-indexed), size (default 5), sort (e.g., "orderDate,desc")
+     */
+    @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<GlobalResponseBuilder<List<OrderResponseDTO>>> getAllOrders() {
-        List<OrderResponseDTO> orderResponseDTOs = orderService.getAllOrders();
-        return GlobalResponseBuilder.buildResponse("Orders retrieved successfully", orderResponseDTOs, HttpStatus.OK);
+    public ResponseEntity<GlobalResponseBuilder<Page<OrderResponseDTO>>> getAllOrders(
+            @PageableDefault(size = 5) Pageable pageable) {
+        Page<OrderResponseDTO> responseDTOs = orderService.getAllOrdersPaginated(pageable);
+        return GlobalResponseBuilder.buildResponse("Orders retrieved successfully", responseDTOs, HttpStatus.OK);
     }
 
+    /**
+     * Get order by ID.
+     */
     @GetMapping("/{orderId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<GlobalResponseBuilder<OrderResponseDTO>> getOrderById(@PathVariable Long orderId) {
-        OrderResponseDTO orderResponseDTO = orderService.getOrderById(orderId);
-        return GlobalResponseBuilder.buildResponse("Order retrieved successfully", orderResponseDTO, HttpStatus.OK);
+    @PreAuthorize("hasRole('STUDENT') or hasRole('ADMIN')")
+    public ResponseEntity<GlobalResponseBuilder<OrderResponseDTO>> getOrderById(
+            @PathVariable Long orderId) {
+        OrderResponseDTO responseDTO = orderService.getOrderById(orderId);
+        return GlobalResponseBuilder.buildResponse("Order retrieved successfully", responseDTO, HttpStatus.OK);
     }
 
-    @GetMapping("/student")
+    /**
+     * Get all orders for the authenticated student (paginated by default).
+     * Query params: page (0-indexed), size (default 5), sort (e.g., "orderDate,desc")
+     */
+    @GetMapping("/my-orders")
     @PreAuthorize("hasRole('STUDENT')")
-    public ResponseEntity<GlobalResponseBuilder<List<OrderResponseDTO>>> getOrdersByStudentId(@AuthenticationPrincipal String studentId) {
-        List<OrderResponseDTO> orderResponseDTOs = orderService.getOrdersByStudentId(studentId);
-        return GlobalResponseBuilder.buildResponse("Orders retrieved successfully", orderResponseDTOs, HttpStatus.OK);
+    public ResponseEntity<GlobalResponseBuilder<Page<OrderResponseDTO>>> getMyOrders(
+            @AuthenticationPrincipal String studentId,
+            @PageableDefault(size = 5) Pageable pageable) {
+        Page<OrderResponseDTO> responseDTOs = orderService.getOrdersByStudentIdPaginated(studentId, pageable);
+        return GlobalResponseBuilder.buildResponse("Orders retrieved successfully", responseDTOs, HttpStatus.OK);
     }
 
-    @PatchMapping("/{orderId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<GlobalResponseBuilder<OrderResponseDTO>> patchOrder(@PathVariable Long orderId, @Valid @RequestBody PatchOrderRequestDTO patchOrderRequestDTO) {
-        OrderResponseDTO orderResponseDTO = orderService.patchOrder(orderId, patchOrderRequestDTO);
-        return GlobalResponseBuilder.buildResponse("Order patched successfully", orderResponseDTO, HttpStatus.OK);
-    }
-
-    @GetMapping()
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<GlobalResponseBuilder<List<OrderResponseDTO>>> getOrdersByOrderStatus(@RequestParam OrderStatus status) {
-        List<OrderResponseDTO> orderResponseDTOs = orderService.getOrdersByOrderStatus(status);
-        return GlobalResponseBuilder.buildResponse("Orders retrieved successfully", orderResponseDTOs, HttpStatus.OK);
-    }
-
+    /**
+     * Delete order.
+     * Only admins can delete orders.
+     */
     @DeleteMapping("/{orderId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<GlobalResponseBuilder<OrderResponseDTO>> deleteOrder(@PathVariable Long orderId) {
-        OrderResponseDTO orderResponseDTO = orderService.deleteOrder(orderId);
-        return GlobalResponseBuilder.buildResponse("Order deleted successfully", orderResponseDTO, HttpStatus.OK);
+    public ResponseEntity<GlobalResponseBuilder<Void>> deleteOrder(
+            @PathVariable Long orderId) {
+        orderService.deleteOrder(orderId);
+        return GlobalResponseBuilder.buildResponse("Order deleted successfully", null, HttpStatus.NO_CONTENT);
     }
 }

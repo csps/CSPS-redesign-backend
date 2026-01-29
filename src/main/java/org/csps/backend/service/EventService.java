@@ -6,13 +6,20 @@ import java.util.List;
 import org.csps.backend.domain.dtos.request.EventPostRequestDTO;
 import org.csps.backend.domain.dtos.request.EventUpdateRequestDTO;
 import org.csps.backend.domain.dtos.response.EventResponseDTO;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface EventService {
-    EventResponseDTO postEvent(EventPostRequestDTO eventPostRequestDTO);
+    EventResponseDTO postEvent(EventPostRequestDTO eventPostRequestDTO, MultipartFile eventImage) throws Exception;
     List<EventResponseDTO> getAllEvents();
     EventResponseDTO getEventById(Long eventId);
+    EventResponseDTO getEventByS3ImageKey(String s3ImageKey);
     EventResponseDTO deleteEvent(Long eventId);
-    EventResponseDTO putEvent(Long eventId, EventUpdateRequestDTO eventPostRequestDTO);
-    EventResponseDTO patchEvent(Long eventId, EventUpdateRequestDTO eventPostRequestDTO);
+    EventResponseDTO putEvent(Long eventId, EventUpdateRequestDTO eventPostRequestDTO, MultipartFile eventImage) throws Exception;
+    EventResponseDTO patchEvent(Long eventId, EventUpdateRequestDTO eventPostRequestDTO, MultipartFile eventImage) throws Exception;
     List<EventResponseDTO> getEventByDate(LocalDate eventDate);
+    List<EventResponseDTO> getUpcomingEvents();
+    
+    List<EventResponseDTO> getEventsByMonth(int year, int month);
+    
+    List<EventResponseDTO> getPastEvents();
 }
