@@ -40,3 +40,5 @@ build/
 **/application.properties
 src/main/resources/application.properties
 .github
+.md
+docs
