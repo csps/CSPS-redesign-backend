@@ -36,9 +36,9 @@ build/
 
 ### VS Code ###
 .vscode/
-
-**/application.properties
-src/main/resources/application.properties
-.github
 .md
 docs
+
+.sdkmanrc
+compose.yml
+!compose.yml.example
