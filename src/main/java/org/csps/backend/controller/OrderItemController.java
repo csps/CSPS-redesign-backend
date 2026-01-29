@@ -5,6 +5,7 @@ import java.util.List;
 import org.csps.backend.domain.dtos.request.OrderItemRequestDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.OrderItemResponseDTO;
+import org.csps.backend.domain.enums.OrderStatus;
 import org.csps.backend.service.OrderItemService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -77,6 +78,32 @@ public class OrderItemController {
             Pageable pageable) {
         Page<OrderItemResponseDTO> page = orderItemService.getOrderItemsByOrderIdPaginated(orderId, pageable);
         return GlobalResponseBuilder.buildResponse("Order items retrieved successfully", page.getContent(), HttpStatus.OK);
+    }
+    
+    /**
+     * Get paginated order items by status.
+     * Query params: status, page (0-indexed), size (default 20), sort (e.g., "createdAt,desc")
+     */
+    @GetMapping("/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<GlobalResponseBuilder<Page<OrderItemResponseDTO>>> getOrderItemsByStatus(
+            @RequestParam OrderStatus status,
+            Pageable pageable) {
+        Page<OrderItemResponseDTO> page = orderItemService.getOrderItemsByStatus(status, pageable);
+        return GlobalResponseBuilder.buildResponse("Order items retrieved successfully", page, HttpStatus.OK);
+    }
+    
+    /**
+     * Update order item status.
+     * Only admins can update order item status.
+     */
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<GlobalResponseBuilder<OrderItemResponseDTO>> updateOrderItemStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody OrderItemRequestDTO requestDTO) {
+        OrderItemResponseDTO responseDTO = orderItemService.updateOrderItemStatus(id, requestDTO);
+        return GlobalResponseBuilder.buildResponse("Order item status updated successfully", responseDTO, HttpStatus.OK);
     }
     
     /**

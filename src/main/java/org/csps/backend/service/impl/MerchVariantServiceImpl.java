@@ -140,6 +140,7 @@ public class MerchVariantServiceImpl implements MerchVariantService {
         return merchVariantMapper.toResponseDTO(variant);
     }
 
+
     @Override
     @Transactional
     public String uploadVariantImage(Long merchVariantId, MultipartFile file) throws IOException {

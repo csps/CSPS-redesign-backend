@@ -8,6 +8,7 @@ import org.csps.backend.domain.dtos.response.OrderItemResponseDTO;
 import org.csps.backend.domain.entities.Order;
 import org.csps.backend.domain.entities.OrderItem;
 import org.csps.backend.domain.entities.MerchVariantItem;
+import org.csps.backend.domain.enums.OrderStatus;
 import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.exception.OrderItemNotFoundException;
 import org.csps.backend.exception.OrderNotFoundException;
@@ -110,6 +111,19 @@ public class OrderItemServiceImpl implements OrderItemService {
         return orderItemMapper.toResponseDTO(orderItem);
     }
     
+    @Override
+    public Page<OrderItemResponseDTO> getOrderItemsByStatus(OrderStatus status, Pageable pageable) {
+        if (status == null) {
+            throw new InvalidRequestException("Order status is required");
+        }
+        
+
+        Page<OrderItem> orderItems = orderItemRepository.findByOrderStatus(status,pageable);
+
+
+        return orderItems.map(orderItemMapper::toResponseDTO);
+    }
+
     @Override
     public List<OrderItemResponseDTO> getOrderItemsByOrderId(Long orderId) {
         if (orderId == null || orderId <= 0) {
