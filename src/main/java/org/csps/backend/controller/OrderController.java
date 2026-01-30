@@ -1,7 +1,5 @@
 package org.csps.backend.controller;
 
-import java.util.List;
-
 import org.csps.backend.domain.dtos.request.OrderPostRequestDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.OrderResponseDTO;
@@ -78,6 +76,20 @@ public class OrderController {
             @AuthenticationPrincipal String studentId,
             @PageableDefault(size = 5) Pageable pageable) {
         Page<OrderResponseDTO> responseDTOs = orderService.getOrdersByStudentIdPaginated(studentId, pageable);
+        return GlobalResponseBuilder.buildResponse("Orders retrieved successfully", responseDTOs, HttpStatus.OK);
+    }
+
+    /**
+     * Get all orders by data
+     * 
+     * @param pageable
+     * @return
+     */
+    @GetMapping("/sorted-by-date")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<GlobalResponseBuilder<Page<OrderResponseDTO>>> getAllOrdersSortedByDate(
+            @PageableDefault(size = 3) Pageable pageable) {
+        Page<OrderResponseDTO> responseDTOs = orderService.getAllOrdersPaginatedSortByDate(pageable);
         return GlobalResponseBuilder.buildResponse("Orders retrieved successfully", responseDTOs, HttpStatus.OK);
     }
 

@@ -17,5 +17,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     
     @Query("SELECT o FROM Order o WHERE o.student.studentId = :studentId")
     Page<Order> findByStudentId(String studentId, Pageable pageable);
+
+    Page<Order> findAllByOrderByOrderDateDesc(Pageable pageable);
 }
 
