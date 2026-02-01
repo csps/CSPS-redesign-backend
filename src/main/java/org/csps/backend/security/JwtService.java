@@ -6,16 +6,13 @@ import java.util.Map;
 
 import javax.crypto.SecretKey;
 
-import org.csps.backend.domain.dtos.request.SignInCredentialRequestDTO;
 import org.csps.backend.domain.entities.Admin;
 import org.csps.backend.domain.entities.Student;
 import org.csps.backend.domain.entities.UserAccount;
 import org.csps.backend.domain.enums.UserRole;
 import org.csps.backend.service.AdminService;
 import org.csps.backend.service.StudentService;
-import org.csps.backend.service.UserAccountService;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Claims;
@@ -71,20 +68,16 @@ public class JwtService {
         
 
         // Add base claims
-        customClaim.put("username", user.getUsername());
         customClaim.put("role", user.getRole().toString());
-        customClaim.put("profileId", user.getUserProfile().getUserId());
 
         // Add role-specific claims
         if (user.getRole() == UserRole.STUDENT) {
             Student student = studentService.findByAccountId(user.getUserAccountId())
                     .orElseThrow(() -> new RuntimeException("Student record not found"));
             customClaim.put("studentId", student.getStudentId());
-            customClaim.put("yearLevel", student.getYearLevel());
         } else if (user.getRole() == UserRole.ADMIN) {
             Admin admin = adminService.findByAccountId(user.getUserAccountId())
                     .orElseThrow(() -> new RuntimeException("Admin record not found"));
-            customClaim.put("adminId", admin.getAdminId());
             customClaim.put("position", admin.getPosition().name());
         }
 
