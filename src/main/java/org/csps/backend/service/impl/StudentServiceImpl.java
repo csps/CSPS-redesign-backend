@@ -1,6 +1,5 @@
 package org.csps.backend.service.impl;
 
-import java.util.List;
 import java.util.Optional;
 
 import org.csps.backend.domain.dtos.request.StudentRequestDTO;
@@ -16,9 +15,10 @@ import org.csps.backend.repository.StudentRepository;
 import org.csps.backend.service.CartService;
 import org.csps.backend.service.StudentService;
 import org.csps.backend.service.UserService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import jakarta.transaction.TransactionScoped;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -79,10 +79,9 @@ public class StudentServiceImpl implements StudentService {
 
     // Get all Students
    @Override
-   public List<StudentResponseDTO> getAllStudents() {
-       return studentRepository.findAll().stream()
-               .map(studentMapper::toResponseDTO)
-               .toList();
+   public Page<StudentResponseDTO> getAllStudents(Pageable pageable) {
+       return studentRepository.findAll(pageable)
+               .map(studentMapper::toResponseDTO);
    }
 
 
