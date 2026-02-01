@@ -108,6 +108,7 @@ public class AuthController {
                 .path("/")
                 .sameSite("None")
                 .maxAge(0) // Expire immediately
+                .secure(true)
                 .build();
 
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", "")
@@ -115,6 +116,7 @@ public class AuthController {
                 .path("/")
                 .sameSite("None")
                 .maxAge(0) // Expire immediately
+                .secure(true)
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
