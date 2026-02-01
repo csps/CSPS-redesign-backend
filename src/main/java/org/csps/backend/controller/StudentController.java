@@ -1,29 +1,28 @@
 package org.csps.backend.controller;
 
-import java.util.List;
-
 import org.csps.backend.domain.dtos.request.StudentRequestDTO;
 import org.csps.backend.domain.dtos.response.StudentResponseDTO;
 import org.csps.backend.service.StudentService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 
 
 @RestController
-@RequestMapping("/api/v1/students")
+@RequestMapping("/api/students")
 @RequiredArgsConstructor
-@CrossOrigin("http://localhost:5173/")
-
 public class StudentController {
 
    private final StudentService studentService;
@@ -38,9 +37,11 @@ public class StudentController {
 
    @GetMapping()
    @PreAuthorize("hasRole('ADMIN')")
-   public ResponseEntity<List<StudentResponseDTO>> getAllStudents() {
-       // map all Students to StudentResponseDTO
-       List<StudentResponseDTO> students = studentService.getAllStudents();
+   public ResponseEntity<Page<StudentResponseDTO>> getAllStudents(
+           @RequestParam(defaultValue = "0") int page,
+           @RequestParam(defaultValue = "7") int size) {
+       Pageable pageable = PageRequest.of(page, size);
+       Page<StudentResponseDTO> students = studentService.getAllStudents(pageable);
        return ResponseEntity.ok(students);
    }
 

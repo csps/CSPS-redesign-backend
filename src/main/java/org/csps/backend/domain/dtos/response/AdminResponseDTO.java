@@ -4,6 +4,7 @@ package org.csps.backend.domain.dtos.response;
 import org.csps.backend.domain.enums.AdminPosition;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,6 +19,6 @@ import lombok.NoArgsConstructor;
 public class AdminResponseDTO {
     private AdminPosition position;
 
-    @JsonAlias("user_profile")
-    private UserResponseDTO userResponseDTO;
+
+    private UserResponseDTO user;
 }

@@ -10,7 +10,7 @@ import org.mapstruct.Mapping;
 public interface AdminMapper {
 
     // Student → DTO
-    @Mapping(source = "userAccount", target = "userResponseDTO")
+    @Mapping(source = "userAccount", target = "user")
     AdminResponseDTO toResponseDTO(Admin admin);
 
    // DTO → Admin

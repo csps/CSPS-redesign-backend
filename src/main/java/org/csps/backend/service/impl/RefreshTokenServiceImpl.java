@@ -71,13 +71,13 @@ public class RefreshTokenServiceImpl implements RefreshTokenService{
     @Override
     public Optional<String> refreshAccessToken(String refreshTokenValue) {
         return refreshTokenRepository.findByRefreshToken(refreshTokenValue)
-                .map(token -> {
+                .flatMap(token -> {
                     if (!isValidRefreshToken(token)) {
                         deleteRefreshToken(token);
-                        return null; 
+                        return Optional.empty(); 
                     }
                     UserAccount user = token.getUserAccount();
-                    return jwtService.generateAccessToken(user);
+                    return Optional.of(jwtService.generateAccessToken(user));
                 });
     }
 

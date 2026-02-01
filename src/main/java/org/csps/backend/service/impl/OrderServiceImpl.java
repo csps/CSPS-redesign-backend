@@ -1,6 +1,5 @@
 package org.csps.backend.service.impl;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -9,19 +8,17 @@ import org.csps.backend.domain.dtos.request.OrderPostRequestDTO;
 import org.csps.backend.domain.dtos.response.OrderItemResponseDTO;
 import org.csps.backend.domain.dtos.response.OrderResponseDTO;
 import org.csps.backend.domain.entities.Order;
-import org.csps.backend.domain.entities.OrderItem;
 import org.csps.backend.domain.entities.Student;
-import org.csps.backend.domain.enums.OrderStatus;
+import org.csps.backend.exception.CartItemNotFoundException;
 import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.exception.OrderNotFoundException;
 import org.csps.backend.exception.StudentNotFoundException;
-import org.csps.backend.exception.CartItemNotFoundException;
 import org.csps.backend.mapper.OrderMapper;
 import org.csps.backend.repository.OrderRepository;
 import org.csps.backend.repository.StudentRepository;
-import org.csps.backend.service.OrderService;
-import org.csps.backend.service.OrderItemService;
 import org.csps.backend.service.CartItemService;
+import org.csps.backend.service.OrderItemService;
+import org.csps.backend.service.OrderService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -121,6 +118,12 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new OrderNotFoundException("Order not found"));
         
         return orderMapper.toResponseDTO(order);
+    }
+
+    @Override
+    public Page<OrderResponseDTO> getAllOrdersPaginatedSortByDate(Pageable pageable) {
+        Page<Order> orders = orderRepository.findAllByOrderByOrderDateDesc(pageable);
+        return orders.map(orderMapper::toResponseDTO);
     }
 
     @Override

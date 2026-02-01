@@ -6,11 +6,13 @@ import java.util.Optional;
 import org.csps.backend.domain.dtos.request.StudentRequestDTO;
 import org.csps.backend.domain.dtos.response.StudentResponseDTO;
 import org.csps.backend.domain.entities.Student;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 
 public interface StudentService {
    StudentResponseDTO createStudent(StudentRequestDTO studentRequestDTO);
-   public List<StudentResponseDTO> getAllStudents();
+   public Page<StudentResponseDTO> getAllStudents(Pageable pageable);
    StudentResponseDTO getStudentProfile(String studentId);
    Optional<Student> findByAccountId(Long accountId);
    Optional<StudentResponseDTO> findById(String id);
