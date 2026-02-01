@@ -29,18 +29,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, java.io.IOException {
 
-        // Extract Authorization header
-        String authHeader = request.getHeader("Authorization");
-
-        // Skip if no header or doesn't start with Bearer
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+        // Initialize token
+        String accessToken = null;        
 
         try {
-            final String token = authHeader.substring(7).trim(); // Extract token
-            final Long userId = jwtService.extractUsernameId(token); // Parse userId from token
+            // Find the "accessToken" in the cookie
+            if (request.getCookies() != null) {
+                for (var cookie : request.getCookies()) {
+                    if (cookie.getName().equals("accessToken")) {
+                        accessToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+            
+            if (accessToken == null) {
+                // No token found, continue filter chain
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            final Long userId = jwtService.extractUsernameId(accessToken); // Parse userId from token
 
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
@@ -50,10 +59,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UserAccount user = userService.findById(userId)
                         .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-            
-
                 // Validate token
-                if (!jwtService.isTokenValid(token, user)) {
+                if (!jwtService.isTokenValid(accessToken, user)) {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.getWriter().write("Invalid token");
                     return;
