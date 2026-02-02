@@ -21,6 +21,10 @@ services:
       - PASSWORD_FORMAT=YOUR_PASSWORD_PREFIX@
       - ADMIN_USERNAME_FORMAT=YOUR_ADMIN_USERNAME_PREFIX-
       - ADMIN_PASSWORD_FORMAT=YOUR_ADMIN_PASSWORD_PREFIX@
+      - METAGRAPH_URL= YOUR_METAGRAPH_URL
+      - METAGRAPH_API_KEY = YOUR_METAGRAPH_API_KEY
+      - METAGRAPH_PAGEID = YOUR_METAGRAPH_PAGEID
+      - 
     tty: true
     stdin_open: true
     depends_on: # Remove this section if not using the local database service
