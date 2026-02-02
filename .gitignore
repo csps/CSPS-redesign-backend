@@ -38,6 +38,7 @@ build/
 .vscode/
 .md
 docs
+.env
 
 .sdkmanrc
 compose.yml
