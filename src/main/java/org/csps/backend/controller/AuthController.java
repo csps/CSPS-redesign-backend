@@ -152,8 +152,9 @@ public class AuthController {
             ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", newAccessToken)
                     .httpOnly(true)
                     .path("/")
-                    .sameSite("Strict")
+                    .sameSite("None")
                     .maxAge(2 * 60) // 2 minutes
+                    .secure(true)
                     .build();
             response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
             
