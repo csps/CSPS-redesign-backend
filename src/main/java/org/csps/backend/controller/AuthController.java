@@ -11,23 +11,20 @@ import org.csps.backend.service.AdminService;
 import org.csps.backend.service.RefreshTokenService;
 import org.csps.backend.service.StudentService;
 import org.csps.backend.service.UserAccountService;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -42,10 +39,9 @@ public class AuthController {
     private final AdminService adminService;
 
     @PostMapping("/login")
-    public ResponseEntity<GlobalResponseBuilder<AuthResponseDTO>> login(@Valid @RequestBody SignInCredentialRequestDTO signInRequest, HttpServletResponse response) {
+    public ResponseEntity<GlobalResponseBuilder<AuthResponseDTO>> login(@Valid @RequestBody SignInCredentialRequestDTO signInRequest) {
         String studentId = signInRequest.getStudentId();
         
-
         UserAccount user = userService.findByUsername(studentId)
                 .orElse(null);
 
@@ -62,26 +58,10 @@ public class AuthController {
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = refreshTokenService.createRefreshToken(userAccountId).getRefreshToken();
 
-        ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", accessToken)
-                .httpOnly(true)
-                .path("/")
-                .sameSite("None")
-                .maxAge(2* 60) // 2 minutes
-                .secure(true)
+        // Return both tokens in response body - client should store in memory or secure storage
+        AuthResponseDTO authResponse = AuthResponseDTO.builder()
+                .accessToken(accessToken)
                 .build();
-
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", refreshToken)
-                .httpOnly(true)
-                .path("/")
-                .sameSite("None")
-                .maxAge(30 * 24 * 60 * 60) // 30 days
-                .secure(true)
-                .build();
-
-        response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
-        response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
-
-        AuthResponseDTO authResponse = new AuthResponseDTO(accessToken);
 
         return GlobalResponseBuilder.buildResponse(
             "Login successful",
@@ -92,36 +72,17 @@ public class AuthController {
 
     // logout
     @PostMapping("/logout")
-    public ResponseEntity<GlobalResponseBuilder<String>> logout(
-        @CookieValue(name = "refreshToken", required = false) String refreshToken,
-        HttpServletResponse response) {
+    public ResponseEntity<GlobalResponseBuilder<String>> logout(@RequestBody(required = false) Map<String, String> requestBody) {
+        String refreshToken = null;
+        if (requestBody != null && requestBody.containsKey("refreshToken")) {
+            refreshToken = requestBody.get("refreshToken");
+        }
         
         // Delete refresh token from database if it exists
         if (refreshToken != null && !refreshToken.isBlank()) {
             refreshTokenService.findByRefreshToken(refreshToken)
                 .ifPresent(refreshTokenService::deleteRefreshToken);
         }
-        
-        // Invalidate cookies
-        ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", "")
-                .httpOnly(true)
-                .path("/")
-                .sameSite("None")
-                .maxAge(0) // Expire immediately
-                .secure(true)
-                .build();
-
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", "")
-                .httpOnly(true)
-                .path("/")
-                .sameSite("None")
-                .maxAge(0) // Expire immediately
-                .secure(true)
-                .build();
-
-        response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
-        response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
-        
         
         return GlobalResponseBuilder.buildResponse(
             "Logout successful",
@@ -133,9 +94,9 @@ public class AuthController {
     // refresh token
     @PostMapping("/refresh")
     public ResponseEntity<GlobalResponseBuilder<AuthResponseDTO>> refresh(
-        @CookieValue(name = "refreshToken", required = false) String requestToken,
-        HttpServletResponse response
+        @RequestBody Map<String, String> requestBody
     ) {
+        String requestToken = requestBody.get("refreshToken");
         if (requestToken == null || requestToken.isBlank()) {
             return GlobalResponseBuilder.buildResponse(
                 "Refresh token is missing",
@@ -147,16 +108,6 @@ public class AuthController {
         var result = refreshTokenService.refreshAccessToken(requestToken);
         if (result.isPresent()) {
             String newAccessToken = result.get();
-            
-            // Set new access token cookie
-            ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", newAccessToken)
-                    .httpOnly(true)
-                    .path("/")
-                    .sameSite("None")
-                    .maxAge(2 * 60) // 2 minutes
-                    .secure(true)
-                    .build();
-            response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
             
             return GlobalResponseBuilder.buildResponse(
                 "Access token refreshed successfully",

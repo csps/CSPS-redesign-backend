@@ -17,7 +17,7 @@ public class CorsConfig {
                         .allowedOrigins("https://csps-redesign.vercel.app", "http://localhost:5173") //Your Vite port
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                         .allowedHeaders("*")
-                        .allowCredentials(true);
+                        .allowCredentials(false); // Using Authorization header instead of cookies
             }
         };
     }

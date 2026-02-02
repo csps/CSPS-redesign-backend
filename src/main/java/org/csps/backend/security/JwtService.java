@@ -28,7 +28,7 @@ public class JwtService {
     @Value("${csps.jwtToken.secretKey}")
     private String secretKey; // Base64-encoded secret key
 
-    private long jwtAccessTokenExpirationMs = 120000; // Expiration time in ms
+    private long jwtAccessTokenExpirationMs = 900000; // Expiration time in ms
 
     private final StudentService studentService;
     private final AdminService adminService;

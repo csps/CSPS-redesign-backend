@@ -33,14 +33,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String accessToken = null;        
 
         try {
-            // Find the "accessToken" in the cookie
-            if (request.getCookies() != null) {
-                for (var cookie : request.getCookies()) {
-                    if (cookie.getName().equals("accessToken")) {
-                        accessToken = cookie.getValue();
-                        break;
-                    }
-                }
+            // Extract token from Authorization header
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                accessToken = authHeader.substring(7); // Remove "Bearer " prefix
             }
             
             if (accessToken == null) {
