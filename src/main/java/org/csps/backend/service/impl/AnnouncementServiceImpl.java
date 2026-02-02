@@ -40,7 +40,6 @@ public class AnnouncementServiceImpl implements AnnouncementService {
             // Call the Facebook API
             String response = restTemplate.getForObject(url, String.class);
 
-            System.out.println("Facebook API Response: " + response);
             // Parse the response
             JsonNode rootNode = objectMapper.readTree(response);
 
