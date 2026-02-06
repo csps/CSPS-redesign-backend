@@ -96,6 +96,10 @@ public class JwtService {
         return generateAccessToken(new HashMap<>(), user);
     }
 
+    public Long getUserIdFromToken(String token) {
+        return extractUsernameId(token);
+    }
+
     // Validate token: check subject matches and not expired
     public Boolean isTokenValid(String token, UserAccount user) {
         final Long usernameId = extractUsernameId(token);

@@ -1,6 +1,5 @@
 package org.csps.backend.security;
 
-import org.csps.backend.domain.dtos.request.SignInCredentialRequestDTO;
 import org.csps.backend.domain.entities.UserAccount;
 import org.csps.backend.service.UserAccountService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -81,7 +80,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(
                                 domainId,
-                                null,
+                                userId,
                                 userPrincipal.getAuthorities()
                         );
 
