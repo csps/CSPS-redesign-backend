@@ -53,7 +53,9 @@ public interface MerchService {
      * Get merch by type.
      */
     List<MerchSummaryResponseDTO> getMerchByType(MerchType merchType);
-    
+
+
+
     /**
      * Update merch (full update).
      */
@@ -63,5 +65,11 @@ public interface MerchService {
      * Partial update of merch.
      */
     MerchDetailedResponseDTO patchMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) throws IOException;
+    
+    /**
+     * Delete merch by ID. Cascades to delete all variants and items.
+     * Also deletes associated S3 images.
+     */
+    void deleteMerch(Long merchId);
     
 }

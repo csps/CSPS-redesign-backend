@@ -167,6 +167,24 @@ public class MerchVariantServiceImpl implements MerchVariantService {
         return s3ImageKey;
     }
 
+    @Override
+    @Transactional
+    public void deleteVariant(Long merchVariantId) {
+        // Verify variant exists
+        MerchVariant variant = merchVariantRepository.findById(merchVariantId)
+                .orElseThrow(() -> new MerchVariantNotFoundException("MerchVariant not found with id: " + merchVariantId));
+
+        // Delete S3 image if not placeholder
+        if (variant.getS3ImageKey() != null 
+            && !variant.getS3ImageKey().isEmpty() 
+            && !variant.getS3ImageKey().equals("placeholder")) {
+            s3Service.deleteFile(variant.getS3ImageKey());
+        }
+
+        // Delete variant (cascades to items)
+        merchVariantRepository.delete(variant);
+    }
+
 }
 
 

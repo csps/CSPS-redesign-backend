@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -131,6 +132,17 @@ public class MerchController {
     ) throws IOException {
         MerchDetailedResponseDTO response = merchService.patchMerch(merchId, request);
         return GlobalResponseBuilder.buildResponse("Merch Updated Successfully", response, HttpStatus.OK);
+    }
+
+    /**
+     * Deletes a merchandise entry and all its associated variants and items.
+     * Also deletes associated S3 images.
+     */
+    @DeleteMapping("/{merchId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<GlobalResponseBuilder<Void>> deleteMerch(@PathVariable Long merchId) {
+        merchService.deleteMerch(merchId);
+        return GlobalResponseBuilder.buildResponse("Merch deleted successfully", null, HttpStatus.NO_CONTENT);
     }
 
 }
