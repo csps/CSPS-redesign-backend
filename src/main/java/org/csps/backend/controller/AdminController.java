@@ -1,6 +1,7 @@
 package org.csps.backend.controller;
 
 import org.csps.backend.domain.dtos.request.AdminPostRequestDTO;
+import org.csps.backend.domain.dtos.request.AdminUnsecureRequestDTO;
 import org.csps.backend.domain.dtos.response.AdminResponseDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.service.AdminService;
@@ -30,6 +31,17 @@ public class AdminController {
         AdminResponseDTO adminResponseDTO = adminService.createAdmin(adminPostRequestDTO);
 
         String message = "Admin added successfully";
+
+        return GlobalResponseBuilder.buildResponse(message, adminResponseDTO, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/setup")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<GlobalResponseBuilder<AdminResponseDTO>> setupAdmin(@RequestBody AdminUnsecureRequestDTO adminUnsecureRequestDTO) {
+    
+        AdminResponseDTO adminResponseDTO = adminService.createAdminUnsecure(adminUnsecureRequestDTO);
+
+        String message = "Admin setup successfully";
 
         return GlobalResponseBuilder.buildResponse(message, adminResponseDTO, HttpStatus.CREATED);
     }
