@@ -31,4 +31,9 @@ public interface MerchVariantItemRepository extends JpaRepository<MerchVariantIt
      * Find all items for a variant (alternative query).
      */
     List<MerchVariantItem> findByMerchVariant(MerchVariant merchVariant);
+    
+    /**
+     * Find top 5 items ordered by stock ascending.
+     */
+    List<MerchVariantItem> findTop5ByOrderByStockQuantityAsc();
 }
