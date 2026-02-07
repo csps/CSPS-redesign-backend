@@ -9,5 +9,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface AdminRepository extends JpaRepository<Admin, Long> {
     Optional<Admin> findByUserAccountUserAccountId(Long userAccountId);
     boolean existsByPosition(AdminPosition position);
-
+    boolean existsByUserAccountUserAccountId(Long userAccountId);
 }

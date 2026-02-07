@@ -1,6 +1,9 @@
 package org.csps.backend.service.impl;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.csps.backend.domain.dtos.request.AdminPostRequestDTO;
 import org.csps.backend.domain.dtos.request.AdminUnsecureRequestDTO;
@@ -175,6 +178,86 @@ public class AdminServiceImpl implements AdminService {
         return adminMapper.toResponseDTO(admin);
     }
 
+    @Override
+    public AdminResponseDTO grantAdminAccess(String studentId, AdminPosition position) {
+        // Check if student exists
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new StudentNotFoundException("Student not found with ID: " + studentId));
+        
+        // Check if student is already an admin
+        if (isStudentAlreadyAdmin(studentId)) {
+            throw new IllegalArgumentException("Student is already an admin");
+        }
+        
+        // Check if position is available (except for DEVELOPER)
+        boolean isDeveloper = position == AdminPosition.DEVELOPER;
+        if (!isDeveloper && adminRepository.existsByPosition(position)) {
+            throw new PositionAlreadyTakenException("Position already taken: " + position);
+        }
+        
+        // Get the student's user account
+        UserAccount studentUserAccount = student.getUserAccount();
+        
+        // Create AdminPostRequestDTO for mapping
+        AdminPostRequestDTO adminPostRequestDTO = new AdminPostRequestDTO();
+        adminPostRequestDTO.setStudentId(studentId);
+        adminPostRequestDTO.setPosition(position);
+        
+        // Create admin entity using mapper
+        Admin admin = adminMapper.toEntity(adminPostRequestDTO);
+        admin.setUserAccount(studentUserAccount);
+        
+        // Update the user account role to ADMIN
+        studentUserAccount.setRole(UserRole.ADMIN);
+        userAccountRepository.save(studentUserAccount);
+        
+        // Save the admin
+        admin = adminRepository.save(admin);
+        
+        return adminMapper.toResponseDTO(admin);
+    }
 
+    @Override
+    public boolean isStudentAlreadyAdmin(String studentId) {
+        // Find the student
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new StudentNotFoundException("Student not found with ID: " + studentId));
+        
+        // Check if any admin has the same user account ID as the student
+        return adminRepository.existsByUserAccountUserAccountId(student.getUserAccount().getUserAccountId());
+    }
 
+    @Override
+    public List<AdminPosition> getAvailablePositions() {
+        // Get all positions that are not taken (except DEVELOPER which can have multiple)
+        List<AdminPosition> takenPositions = adminRepository.findAll().stream()
+                .filter(admin -> admin.getPosition() != AdminPosition.DEVELOPER)
+                .map(Admin::getPosition)
+                .collect(Collectors.toList());
+        
+        return Arrays.stream(AdminPosition.values())
+                .filter(position -> position == AdminPosition.DEVELOPER || !takenPositions.contains(position))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public AdminResponseDTO revokeAdminAccess(Long adminId) {
+        Admin admin = adminRepository.findById(adminId)
+                .orElseThrow(() -> new AdminNotFoundException("Admin not found with ID: " + adminId));
+        
+        // Check if the admin is a DEVELOPER (only developers can revoke admin access)
+        // This check should be done at controller level with @PreAuthorize
+        
+        // Get the user account
+        UserAccount userAccount = admin.getUserAccount();
+        
+        // Change role back to STUDENT
+        userAccount.setRole(UserRole.STUDENT);
+        userAccountRepository.save(userAccount);
+        
+        // Delete the admin record
+        adminRepository.delete(admin);
+        
+        return adminMapper.toResponseDTO(admin);
+    }
 }
