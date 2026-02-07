@@ -20,7 +20,7 @@ public class FinanceDashboardController {
     private final FinanceDashboardService dashboardService;
 
     @GetMapping("/finance")
-    @PreAuthorize("hasRole('ADMIN_FINANCE') or hasRole('ADMIN_EXECUTIVE')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('ADMIN_FINANCE') or hasRole('ADMIN_EXECUTIVE')")
     public ResponseEntity<GlobalResponseBuilder<FinanceDashboardDTO>> getFinanceDashboard() {
         FinanceDashboardDTO data = dashboardService.getFinanceDashboardData();
         return GlobalResponseBuilder.buildResponse("Finance dashboard data retrieved successfully", data, HttpStatus.OK);

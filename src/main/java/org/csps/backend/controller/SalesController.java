@@ -29,7 +29,7 @@ public class SalesController {
     private final SalesService salesService;
 
     @GetMapping("/stats")
-    @PreAuthorize("hasRole('ADMIN_FINANCE') or hasRole('ADMIN_EXECUTIVE')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('ADMIN_FINANCE') or hasRole('ADMIN_EXECUTIVE')")
     public ResponseEntity<GlobalResponseBuilder<SalesStatsDTO>> getSalesStats(
             @RequestParam(defaultValue = "WEEKLY") SalesPeriod period) {
         SalesStatsDTO stats = salesService.getSalesStats(period);
@@ -37,7 +37,7 @@ public class SalesController {
     }
 
     @GetMapping("/transactions")
-    @PreAuthorize("hasRole('ADMIN_FINANCE') or hasRole('ADMIN_EXECUTIVE')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('ADMIN_FINANCE') or hasRole('ADMIN_EXECUTIVE')")
     public ResponseEntity<GlobalResponseBuilder<Page<TransactionDTO>>> getTransactions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
