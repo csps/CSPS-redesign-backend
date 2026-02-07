@@ -57,4 +57,8 @@ public class Order {
     
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OrderStatus orderStatus;
 }

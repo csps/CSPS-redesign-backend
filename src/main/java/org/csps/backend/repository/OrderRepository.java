@@ -1,8 +1,10 @@
 package org.csps.backend.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.csps.backend.domain.entities.Order;
+import org.csps.backend.domain.enums.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,5 +21,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Page<Order> findByStudentId(String studentId, Pageable pageable);
 
     Page<Order> findAllByOrderByOrderDateDesc(Pageable pageable);
+    
+    List<Order> findByOrderDateBetween(LocalDateTime start, LocalDateTime end);
+    
+    List<Order> findByOrderDateBetweenAndOrderStatus(LocalDateTime start, LocalDateTime end, OrderStatus status);
+    
+    List<Order> findByOrderStatus(OrderStatus status);
 }
 
+    

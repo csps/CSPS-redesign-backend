@@ -9,6 +9,7 @@ import org.csps.backend.domain.dtos.response.OrderItemResponseDTO;
 import org.csps.backend.domain.dtos.response.OrderResponseDTO;
 import org.csps.backend.domain.entities.Order;
 import org.csps.backend.domain.entities.Student;
+import org.csps.backend.domain.enums.OrderStatus;
 import org.csps.backend.exception.CartItemNotFoundException;
 import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.exception.OrderNotFoundException;
@@ -58,6 +59,8 @@ public class OrderServiceImpl implements OrderService {
                 .orderDate(LocalDateTime.now())
                 .totalPrice(0.0) // Will be updated after adding order items
                 .updatedAt(LocalDateTime.now())
+                .orderStatus(OrderStatus.PENDING) // Default status for new orders
+                .quantity(0)
                 .build();
 
         // Save order first to get the generated orderId

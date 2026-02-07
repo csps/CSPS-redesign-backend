@@ -5,6 +5,5 @@ public enum OrderStatus {
     TO_BE_CLAIMED,
     PENDING,
     CLAIMED,
-    CANCELLED
-
+    REJECTED
 }
