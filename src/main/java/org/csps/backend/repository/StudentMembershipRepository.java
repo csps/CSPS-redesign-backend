@@ -12,4 +12,9 @@ public interface StudentMembershipRepository extends JpaRepository<StudentMember
     List<StudentMembership> findByStudentStudentId(String studentId);
     Optional<StudentMembership> findByStudentStudentIdAndActive(String studentId, boolean isActive);
     Optional<StudentMembership> findByStudentStudentIdAndAcademicYearAndSemester(String studentId, Byte academicYear, Byte semester);
+    
+    List<StudentMembership> findTop5ByOrderByDateJoinedDesc();
+    
+    long countByActiveTrue();
+
 }
