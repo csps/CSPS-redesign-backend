@@ -80,19 +80,18 @@ public class AdminServiceImpl implements AdminService {
             throw new PositionAlreadyTakenException("Position already taken: " + adminPostRequestDTO.getPosition());
         }
 
+
+        System.out.println("ADMIN PASSWORD : " + String.format("Creating Admin for UserProfile: %s", userProfile.getLastName() + " " + userProfile.getUserId()));
         UserAccount userAccount = UserAccount.builder()
                 .userProfile(userProfile)
                 .role(UserRole.ADMIN)
                 .username(String.format("%s-%s%s%s%s",
                         adminUserFormat,
-                        adminPostRequestDTO.getPosition(),
-                        userProfile.getFirstName(),
-                        userProfile.getLastName(),
-                        userProfile.getUserId()))
-                .password(passwordEncoder.encode(String.format("%s-%s%s",
+                        student.getStudentId()))
+                .password(passwordEncoder.encode(String.format("%s%s%s",
                         adminPasswordFormat,
                         userProfile.getLastName(),
-                        userProfile.getUserId())))
+                        student.getStudentId())))
                 .build();
 
         userAccount = userAccountRepository.save(userAccount);
@@ -142,13 +141,12 @@ public class AdminServiceImpl implements AdminService {
         // Generate username and password
         String username = String.format("%s-%s%s%s",
                 adminUserFormat,
-                dto.getPosition(),
                 dto.getFirstName(),
                 dto.getLastName());
         String password = passwordEncoder.encode(String.format("%s-%s",
                 adminPasswordFormat,
                 dto.getLastName()));
-
+        
         // Create UserAccount
         UserAccount userAccount = UserAccount.builder()
                 .userProfile(savedProfile)
@@ -184,7 +182,7 @@ public class AdminServiceImpl implements AdminService {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new StudentNotFoundException("Student not found with ID: " + studentId));
         
-        // Check if student is already an admin
+        // Check if student is already an admin (has an admin account)
         if (isStudentAlreadyAdmin(studentId)) {
             throw new IllegalArgumentException("Student is already an admin");
         }
@@ -195,9 +193,27 @@ public class AdminServiceImpl implements AdminService {
             throw new PositionAlreadyTakenException("Position already taken: " + position);
         }
         
-        // Get the student's user account
-        UserAccount studentUserAccount = student.getUserAccount();
+        // Get the student's user profile (shared between student and admin accounts)
+        UserProfile userProfile = student.getUserAccount().getUserProfile();
         
+        // Create a new admin user account (separate from student account)
+        UserAccount adminUserAccount = UserAccount.builder()
+                .userProfile(userProfile)  // Same profile, different account
+                .role(UserRole.ADMIN)
+                .username(String.format("%s-%s%s%s%s",
+                        adminUserFormat,
+                        position,
+                        userProfile.getFirstName(),
+                        userProfile.getLastName(),
+                        userProfile.getUserId()))
+                .password(passwordEncoder.encode(String.format("%s-%s%s",
+                        adminPasswordFormat,
+                        userProfile.getLastName(),
+                        userProfile.getUserId())))
+                .build();
+
+        adminUserAccount = userAccountRepository.save(adminUserAccount);
+
         // Create AdminPostRequestDTO for mapping
         AdminPostRequestDTO adminPostRequestDTO = new AdminPostRequestDTO();
         adminPostRequestDTO.setStudentId(studentId);
@@ -205,11 +221,7 @@ public class AdminServiceImpl implements AdminService {
         
         // Create admin entity using mapper
         Admin admin = adminMapper.toEntity(adminPostRequestDTO);
-        admin.setUserAccount(studentUserAccount);
-        
-        // Update the user account role to ADMIN
-        studentUserAccount.setRole(UserRole.ADMIN);
-        userAccountRepository.save(studentUserAccount);
+        admin.setUserAccount(adminUserAccount);  // Link to the new admin account
         
         // Save the admin
         admin = adminRepository.save(admin);
@@ -223,8 +235,12 @@ public class AdminServiceImpl implements AdminService {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new StudentNotFoundException("Student not found with ID: " + studentId));
         
-        // Check if any admin has the same user account ID as the student
-        return adminRepository.existsByUserAccountUserAccountId(student.getUserAccount().getUserAccountId());
+        // Get the student's user profile
+        UserProfile studentProfile = student.getUserAccount().getUserProfile();
+        
+        boolean isAdmin = adminRepository.existsByUserAccount_UserProfile_UserId(studentProfile.getUserId());
+
+        return isAdmin;
     }
 
     @Override
@@ -245,18 +261,14 @@ public class AdminServiceImpl implements AdminService {
         Admin admin = adminRepository.findById(adminId)
                 .orElseThrow(() -> new AdminNotFoundException("Admin not found with ID: " + adminId));
         
-        // Check if the admin is a DEVELOPER (only developers can revoke admin access)
-        // This check should be done at controller level with @PreAuthorize
+        // Get the admin user account (separate from student account)
+        UserAccount adminUserAccount = admin.getUserAccount();
         
-        // Get the user account
-        UserAccount userAccount = admin.getUserAccount();
-        
-        // Change role back to STUDENT
-        userAccount.setRole(UserRole.STUDENT);
-        userAccountRepository.save(userAccount);
-        
-        // Delete the admin record
+        // Delete the admin record first
         adminRepository.delete(admin);
+        
+        // Delete the admin user account (student account remains untouched)
+        userAccountRepository.delete(adminUserAccount);
         
         return adminMapper.toResponseDTO(admin);
     }
