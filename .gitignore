@@ -42,3 +42,4 @@ build/
 .sdkmanrc
 compose.yml
 !compose.yml.example
+**/docs
