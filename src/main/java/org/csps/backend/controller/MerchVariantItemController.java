@@ -2,9 +2,11 @@ package org.csps.backend.controller;
 
 import java.util.List;
 
+import org.csps.backend.annotation.Auditable;
 import org.csps.backend.domain.dtos.request.MerchVariantItemRequestDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.MerchVariantItemResponseDTO;
+import org.csps.backend.domain.enums.AuditAction;
 import org.csps.backend.domain.enums.ClothingSizing;
 import org.csps.backend.service.MerchVariantItemService;
 import org.springframework.http.HttpStatus;
@@ -96,6 +98,7 @@ public class MerchVariantItemController {
      */
     @PatchMapping("/{id}/stock")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.UPDATE, resourceType = "MerchVariantItem")
     public ResponseEntity<GlobalResponseBuilder<MerchVariantItemResponseDTO>> updateStockQuantity(
             @PathVariable Long id,
             @RequestParam Integer quantity) {
@@ -109,6 +112,7 @@ public class MerchVariantItemController {
      */
     @PatchMapping("/{id}/price")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.UPDATE, resourceType = "MerchVariantItem")
     public ResponseEntity<GlobalResponseBuilder<MerchVariantItemResponseDTO>> updatePrice(
             @PathVariable Long id,
             @RequestParam Double price) {
