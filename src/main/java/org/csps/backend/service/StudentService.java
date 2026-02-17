@@ -1,6 +1,5 @@
 package org.csps.backend.service;
 
-import java.util.List;
 import java.util.Optional;
 
 import org.csps.backend.domain.dtos.request.StudentRequestDTO;

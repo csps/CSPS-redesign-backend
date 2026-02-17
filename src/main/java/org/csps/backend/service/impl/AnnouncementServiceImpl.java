@@ -33,7 +33,6 @@ public class AnnouncementServiceImpl implements AnnouncementService {
     public List<AnnouncementResponseDTO> getAllAnnouncements() {
         try {
             
-            System.out.println("Fetching announcements from Facebook Graph API... " + graphApiKey);
             // Build the Facebook Graph API URL
             String url = metaGraphApiUrl + "/feed?access_token=" + graphApiKey 
                         + "&fields=id,full_picture,message,status_type,parent_id,permalink_url&limit=25";
