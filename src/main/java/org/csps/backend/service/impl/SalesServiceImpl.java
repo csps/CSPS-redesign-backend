@@ -2,13 +2,11 @@ package org.csps.backend.service.impl;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.temporal.WeekFields;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.csps.backend.domain.dtos.response.sales.ChartPointDTO;
@@ -19,6 +17,7 @@ import org.csps.backend.domain.entities.OrderItem;
 import org.csps.backend.domain.enums.OrderStatus;
 import org.csps.backend.domain.enums.SalesPeriod;
 import org.csps.backend.repository.MerchVariantItemRepository;
+import org.csps.backend.repository.OrderItemRepository;
 import org.csps.backend.repository.OrderRepository;
 import org.csps.backend.service.SalesService;
 import org.springframework.data.domain.Page;
@@ -36,17 +35,21 @@ public class SalesServiceImpl implements SalesService {
     private final OrderRepository orderRepository;
     private final MerchVariantItemRepository merchVariantItemRepository;
 
+    private final OrderItemRepository orderItemRepository;
+
+    // Deployment date - set to today (February 8, 2026) as dummy data
+    private static final LocalDate DEPLOYMENT_DATE = LocalDate.of(2026, 2, 8);
+
     @Override
     public SalesStatsDTO getSalesStats(SalesPeriod period) {
         List<Order> claimedOrders = orderRepository.findByOrderStatus(OrderStatus.CLAIMED);
 
-        BigDecimal totalSales = claimedOrders.stream()
-                .map(Order::getTotalPrice)
-                .filter(Objects::nonNull)
-                .map(BigDecimal::valueOf)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
         List<ChartPointDTO> chartData = generateChartData(claimedOrders, period);
+
+        // Calculate total sales from chart data (sum of all chart values)
+        BigDecimal totalSales = chartData.stream()
+                .map(ChartPointDTO::getValue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return SalesStatsDTO.builder()
                 .totalSales(totalSales)
@@ -54,6 +57,8 @@ public class SalesServiceImpl implements SalesService {
                 .chartData(chartData)
                 .build();
     }
+
+    
 
     @Override
     public Page<TransactionDTO> getTransactions(Pageable pageable, String search, String status, Integer year) {
@@ -90,7 +95,7 @@ public class SalesServiceImpl implements SalesService {
                     return true;
                 })
                 .map(this::mapToTransactionDTO)
-                .sorted(Comparator.comparing(TransactionDTO::getDate).reversed())
+                .sorted(Comparator.comparing(TransactionDTO::getOrderId))
                 .collect(Collectors.toList());
 
         int start = (int) pageable.getOffset();
@@ -118,7 +123,7 @@ public class SalesServiceImpl implements SalesService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        // Restore inventory for all order items in this order
+        // Restore inventory for all order items in this order and reject them
         if (order.getOrderItems() != null && !order.getOrderItems().isEmpty()) {
             for (OrderItem orderItem : order.getOrderItems()) {
                 // Restore the quantity to the MerchVariantItem
@@ -129,6 +134,11 @@ public class SalesServiceImpl implements SalesService {
                     merchVariantItem.setStockQuantity(restoredStock);
                     merchVariantItemRepository.save(merchVariantItem);
                 }
+                
+                // Set order item status to REJECTED
+                orderItem.setOrderStatus(OrderStatus.REJECTED);
+                orderItem.setUpdatedAt(LocalDateTime.now());
+                orderItemRepository.save(orderItem);
             }
         }
 
@@ -142,6 +152,7 @@ public class SalesServiceImpl implements SalesService {
 
         return TransactionDTO.builder()
                 .id(order.getOrderId())
+                .orderId(order.getOrderId())
                 .studentId(order.getStudent().getStudentId())
                 .studentName(studentName)
                 .idNumber(order.getStudent().getStudentId())
@@ -164,17 +175,23 @@ public class SalesServiceImpl implements SalesService {
             String key;
 
             switch (period) {
+                case DAILY:
+                    key = orderDate.toString();
+                    break;
                 case WEEKLY:
-                    WeekFields weekFields = WeekFields.of(Locale.getDefault());
-                    int week = orderDate.get(weekFields.weekOfYear());
-                    int year = orderDate.getYear();
-                    key = "Week " + week + " (" + year + ")";
+                    // Calculate weeks since deployment date
+                    long daysSinceDeployment = java.time.temporal.ChronoUnit.DAYS.between(DEPLOYMENT_DATE, orderDate);
+                    int weekSinceDeployment = (int) Math.ceil((daysSinceDeployment + 1.0) / 7.0);
+                    key = "Week " + Math.max(1, weekSinceDeployment);
                     break;
                 case MONTHLY:
                     key = orderDate.getMonth().toString() + " " + orderDate.getYear();
                     break;
                 case YEARLY:
                     key = String.valueOf(orderDate.getYear());
+                    break;
+                case ALL_TIME:
+                    key = "All Time";
                     break;
                 default:
                     key = orderDate.toString();

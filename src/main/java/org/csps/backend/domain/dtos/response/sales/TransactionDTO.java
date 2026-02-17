@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 public class TransactionDTO {
     private Long id;
+    private Long orderId;         // Order ID for fetching associated order items
     private String studentId;
     private String studentName;
     private String idNumber;       // Student ID Number

@@ -108,7 +108,15 @@ public class FinanceDashboardServiceImpl implements FinanceDashboardService {
         dto.setTotalStudents((int) totalStudents);
         dto.setPaidMembersCount((int) paidMembers);
         dto.setNonMembersCount((int) nonMembers);
-        dto.setMemberPercentage(totalStudents > 0 ? (double) paidMembers / totalStudents * 100 : 0.0);
+
+        double percentage = totalStudents > 0
+        ? (double) paidMembers / totalStudents * 100
+        : 0.0;
+
+        percentage = Math.round(percentage * 100.0) / 100.0;
+
+        dto.setMemberPercentage(percentage);
+
 
         return dto;
     }
