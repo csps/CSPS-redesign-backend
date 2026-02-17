@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.csps.backend.domain.entities.StudentMembership;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -16,5 +18,9 @@ public interface StudentMembershipRepository extends JpaRepository<StudentMember
     List<StudentMembership> findTop5ByOrderByDateJoinedDesc();
     
     long countByActiveTrue();
+    
+    Page<StudentMembership> findAll(Pageable pageable);
+    
+    Page<StudentMembership> findByStudentStudentId(String studentId, Pageable pageable);
 
 }

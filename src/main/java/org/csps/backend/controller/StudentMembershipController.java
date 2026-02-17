@@ -5,6 +5,9 @@ import java.util.List;
 import org.csps.backend.domain.dtos.request.StudentMembershipRequestDTO;
 import org.csps.backend.domain.dtos.response.StudentMembershipResponseDTO;
 import org.csps.backend.service.StudentMembershipService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
@@ -51,5 +55,26 @@ public class StudentMembershipController {
     public ResponseEntity<List<StudentMembershipResponseDTO>> getStudentWithMemberships(@PathVariable String studentId) {
         List<StudentMembershipResponseDTO> response = studentMembershipService.getStudentWithMemberships(studentId);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/paginated")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<StudentMembershipResponseDTO>> getAllStudentMembershipsPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "7") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<StudentMembershipResponseDTO> memberships = studentMembershipService.getAllStudentMembershipsPaginated(pageable);
+        return ResponseEntity.ok(memberships);
+    }
+
+    @GetMapping("/student/{studentId}/paginated")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<StudentMembershipResponseDTO>> getStudentMembershipsPaginated(
+            @PathVariable String studentId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "7") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<StudentMembershipResponseDTO> memberships = studentMembershipService.getStudentMembershipsPaginated(studentId, pageable);
+        return ResponseEntity.ok(memberships);
     }
 }
