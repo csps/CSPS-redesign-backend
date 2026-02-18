@@ -26,18 +26,28 @@ public interface OrderItemService {
      * @param pageable
      * @return
      */
-    Page<OrderItemResponseDTO> getOrderItemsByStatus(OrderStatus status, Pageable pageable);
+    Page<OrderItemResponseDTO> getOrderItemsByStatus(OrderStatus status, Pageable pageable, String studentId);
     
     /**
      * Get all order items for a specific order.
      */
     List<OrderItemResponseDTO> getOrderItemsByOrderId(Long orderId);
     
+
     /**
      * Get paginated order items for a specific order.
      */
     Page<OrderItemResponseDTO> getOrderItemsByOrderIdPaginated(Long orderId, Pageable pageable);
     
+    /**
+     * Get all order items for a specific student (paginated).
+     */
+    Page<OrderItemResponseDTO> getOrderItemsByStudentIdPaginated(String studentId, Pageable pageable);
+    
+    /**
+     * Get all order items for a specific student with optional status filter (paginated).
+     */
+    Page<OrderItemResponseDTO> getOrderItemsByStudentIdAndStatusPaginated(String studentId, OrderStatus status, Pageable pageable);
 
     /**
      * Update order item status.

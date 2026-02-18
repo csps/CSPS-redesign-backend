@@ -3,6 +3,7 @@ package org.csps.backend.service;
 import java.util.List;
 
 import org.csps.backend.domain.dtos.request.OrderPostRequestDTO;
+import org.csps.backend.domain.dtos.request.OrderSearchDTO;
 import org.csps.backend.domain.dtos.response.OrderResponseDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -41,7 +42,13 @@ public interface OrderService {
     Page<OrderResponseDTO> getOrdersByStudentIdPaginated(String studentId, Pageable pageable);
     
     Page<OrderResponseDTO> getAllOrdersPaginatedSortByDate(Pageable pageable);
-
+    
+    /**
+     * Search orders by filters (student name, id, status, date range).
+     * All filter fields are optional.
+     * Dynamic pagination and sorting.
+     */
+    Page<OrderResponseDTO> searchOrders(OrderSearchDTO searchDTO, Pageable pageable);
 
     /**
      * Delete order and all its items.

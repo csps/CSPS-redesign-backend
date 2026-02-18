@@ -139,11 +139,10 @@ public class AdminServiceImpl implements AdminService {
         UserProfile savedProfile = userProfileRepository.save(userProfile);
 
         // Generate username and password
-        String username = String.format("%s-%s%s%s",
+        String username = String.format("%s%s",
                 adminUserFormat,
-                dto.getFirstName(),
                 dto.getLastName());
-        String password = passwordEncoder.encode(String.format("%s-%s",
+        String password = passwordEncoder.encode(String.format("%s%s",
                 adminPasswordFormat,
                 dto.getLastName()));
         
