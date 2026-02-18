@@ -2,6 +2,7 @@ package org.csps.backend.service.impl;
 
 import java.util.List;
 
+import org.csps.backend.domain.dtos.request.ChangePasswordRequestDTO;
 import org.csps.backend.domain.dtos.request.StudentRequestDTO;
 import org.csps.backend.domain.dtos.request.UserRequestDTO;
 import org.csps.backend.domain.dtos.response.UserResponseDTO;
@@ -17,6 +18,7 @@ import org.csps.backend.repository.UserAccountRepository;
 import org.csps.backend.repository.UserProfileRepository;
 import org.csps.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,8 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final UserAccountRepository userAccountRepository;
     private final UserProfileRepository userProfileRepository;
+    
+    private final PasswordEncoder passwordEncoder;
     
     @Value("${csps.userNameformat}")
     private String userNameFormat;
@@ -97,7 +101,9 @@ public class UserServiceImpl implements UserService {
         UserAccount userAccount = userMapper.toUserAccount(userRequestDTO);
 
         userAccount.setUserProfile(savedProfile);
-        userAccount.setPassword(String.format("%s-%s", passwordFormat, firstName)); // you’ll later hash this
+
+        String tempPassword = String.format("%s-%s", passwordFormat, firstName);
+        userAccount.setPassword(passwordEncoder.encode(tempPassword)); // Hash the password
         userAccount.setUsername(String.format("%s-%s", userNameFormat, studentId));
         userAccount.setRole(UserRole.STUDENT);
         
@@ -120,6 +126,19 @@ public class UserServiceImpl implements UserService {
         return userAccountRepository.findAll().stream()
                 .map(userMapper::toResponseDTO)
                 .toList();
+    }
+
+    @Override
+    public void changePassword(Long userId, ChangePasswordRequestDTO requestDTO) {
+        UserAccount user = userAccountRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        if (!passwordEncoder.matches(requestDTO.getOldPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Old password is incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(requestDTO.getNewPassword()));
+        userAccountRepository.save(user);
     }
 
 }

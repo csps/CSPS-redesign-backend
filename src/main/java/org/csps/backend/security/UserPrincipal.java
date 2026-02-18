@@ -59,6 +59,9 @@ public class UserPrincipal implements UserDetails {
                 case TREASURER, ASSISTANT_TREASURER -> {
                     authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN_FINANCE"));
                 }
+                case DEVELOPER -> {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_DEVELOPER"));
+                }
             }
 
             return authorities;

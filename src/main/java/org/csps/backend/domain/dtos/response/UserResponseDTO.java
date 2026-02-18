@@ -23,4 +23,5 @@ public class UserResponseDTO {
     private LocalDate birthDate;       // from profile
     private String email;         // from profile
     private UserRole role;          // from account
+    private Boolean isVerified;     // from account
 }

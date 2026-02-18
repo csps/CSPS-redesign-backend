@@ -1,6 +1,5 @@
 package org.csps.backend.service.impl;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,6 +14,8 @@ import org.csps.backend.mapper.StudentMembershipMapper;
 import org.csps.backend.repository.StudentMembershipRepository;
 import org.csps.backend.repository.StudentRepository;
 import org.csps.backend.service.StudentMembershipService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
@@ -168,4 +169,35 @@ public class StudentMembershipServiceImpl implements StudentMembershipService {
         return studentMembershipRepository.findByStudentStudentIdAndActive(studentId, true)
                 .map(studentMembershipMapper::toResponseDTO)
                 .orElse(null);
-    }}
+    }
+
+    /**
+     * Retrieves all student memberships with pagination (7 items per page by default).
+     *
+     * @param pageable the pagination details
+     * @return paginated list of membership response DTOs
+     */
+    @Override
+    public Page<StudentMembershipResponseDTO> getAllStudentMembershipsPaginated(Pageable pageable) {
+        Page<StudentMembership> memberships = studentMembershipRepository.findAll(pageable);
+        return memberships.map(studentMembershipMapper::toResponseDTO);
+    }
+
+    /**
+     * Retrieves memberships for a specific student with pagination (7 items per page by default).
+     *
+     * @param studentId the student ID
+     * @param pageable the pagination details
+     * @return paginated list of membership response DTOs for the student
+     */
+    @Override
+    public Page<StudentMembershipResponseDTO> getStudentMembershipsPaginated(String studentId, Pageable pageable) {
+        // Verify student exists
+        if (!studentRepository.existsById(studentId)) {
+            throw new StudentNotFoundException("Student not found with ID: " + studentId);
+        }
+        
+        Page<StudentMembership> memberships = studentMembershipRepository.findByStudentStudentId(studentId, pageable);
+        return memberships.map(studentMembershipMapper::toResponseDTO);
+    }
+}

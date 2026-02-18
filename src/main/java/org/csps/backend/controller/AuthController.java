@@ -1,5 +1,8 @@
 package org.csps.backend.controller;
 
+import java.util.Map;
+
+import org.csps.backend.domain.dtos.request.ChangePasswordRequestDTO;
 import org.csps.backend.domain.dtos.request.SignInCredentialRequestDTO;
 import org.csps.backend.domain.dtos.response.AdminResponseDTO;
 import org.csps.backend.domain.dtos.response.AuthResponseDTO;
@@ -11,11 +14,14 @@ import org.csps.backend.service.AdminService;
 import org.csps.backend.service.RefreshTokenService;
 import org.csps.backend.service.StudentService;
 import org.csps.backend.service.UserAccountService;
+import org.csps.backend.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,28 +30,31 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final UserAccountService userService;
+    private final UserAccountService userAccountService;
+    private final UserService userService;
 
     private final RefreshTokenService refreshTokenService;
     private final JwtService jwtService;
     private final StudentService studentService;
     private final AdminService adminService;
+    private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/login")
     public ResponseEntity<GlobalResponseBuilder<AuthResponseDTO>> login(@Valid @RequestBody SignInCredentialRequestDTO signInRequest) {
         String studentId = signInRequest.getStudentId();
         
-        UserAccount user = userService.findByUsername(studentId)
+        UserAccount user = userAccountService.findByUsername(studentId)
                 .orElse(null);
 
-        if (user == null || !user.getPassword().equals(signInRequest.getPassword())) {
+        boolean isCorrectPassword = user != null && passwordEncoder.matches(signInRequest.getPassword(), user.getPassword());
+
+        if (!isCorrectPassword) {
             return GlobalResponseBuilder.buildResponse(
                 "Invalid credentials",
                 null,
@@ -53,10 +62,8 @@ public class AuthController {
             );
         }
         
-        Long userAccountId = user.getUserAccountId();
 
         String accessToken = jwtService.generateAccessToken(user);
-        String refreshToken = refreshTokenService.createRefreshToken(userAccountId).getRefreshToken();
 
         // Return both tokens in response body - client should store in memory or secure storage
         AuthResponseDTO authResponse = AuthResponseDTO.builder()
@@ -86,6 +93,25 @@ public class AuthController {
         
         return GlobalResponseBuilder.buildResponse(
             "Logout successful",
+            null,
+            HttpStatus.OK
+        );
+    }
+
+    // change password
+    @PostMapping("/change-password")
+    public ResponseEntity<GlobalResponseBuilder<String>> changePassword(
+        Authentication authentication,
+        @Valid @RequestBody ChangePasswordRequestDTO requestDTO
+    ) {
+
+        Long userId = (Long) authentication.getCredentials();  // Cast to Long
+
+        System.out.println("Authenticated userId: " + userId); // Debugging statement
+        userService.changePassword(userId, requestDTO);
+        
+        return GlobalResponseBuilder.buildResponse(
+            "Password changed successfully",
             null,
             HttpStatus.OK
         );

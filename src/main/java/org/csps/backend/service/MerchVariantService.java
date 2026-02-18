@@ -39,4 +39,10 @@ public interface MerchVariantService {
      * Upload/update image for a variant.
      */
     String uploadVariantImage(Long merchVariantId, MultipartFile file) throws IOException;
+    
+    /**
+     * Delete a variant by ID. Cascades to delete all items.
+     * Also deletes associated S3 image.
+     */
+    void deleteVariant(Long merchVariantId);
 }

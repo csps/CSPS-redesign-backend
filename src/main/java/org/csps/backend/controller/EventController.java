@@ -3,10 +3,12 @@ package org.csps.backend.controller;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.csps.backend.annotation.Auditable;
 import org.csps.backend.domain.dtos.request.EventPostRequestDTO;
 import org.csps.backend.domain.dtos.request.EventUpdateRequestDTO;
 import org.csps.backend.domain.dtos.response.EventResponseDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
+import org.csps.backend.domain.enums.AuditAction;
 import org.csps.backend.service.EventService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -97,6 +99,7 @@ public class EventController {
 
     @PostMapping("/add")
     @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
+    @Auditable(action = AuditAction.CREATE, resourceType = "Event")
     public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> addEvent(
             @RequestParam("event") String eventJson,
             @RequestParam(value = "eventImage", required = false) MultipartFile eventImage) throws Exception {
@@ -108,6 +111,7 @@ public class EventController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
+    @Auditable(action = AuditAction.DELETE, resourceType = "Event")
     public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> deleteEvent(@PathVariable Long id) {
         EventResponseDTO event = eventService.deleteEvent(id);
         String message = "Event deleted successfully";
@@ -116,6 +120,7 @@ public class EventController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
+    @Auditable(action = AuditAction.UPDATE, resourceType = "Event")
     public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> putEvent(
             @PathVariable Long id,
             @RequestParam("event") String eventJson,
@@ -128,6 +133,7 @@ public class EventController {
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
+    @Auditable(action = AuditAction.UPDATE, resourceType = "Event")
     public ResponseEntity<GlobalResponseBuilder<EventResponseDTO>> patchEvent(
             @PathVariable Long id,
             @RequestParam("event") String eventJson,

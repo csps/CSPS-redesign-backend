@@ -310,8 +310,7 @@ public class EventServiceImpl implements EventService {
     public List<EventResponseDTO> getEventByDate(LocalDate eventDate) {
         List<Event> events = eventRepository.findByEventDate(eventDate);
     
-        if (events.isEmpty()) 
-            throw new EventNotFoundException("Event not found with date: " + eventDate);
+
 
         List<EventResponseDTO> eventResponseDTOs = events.stream()
                 .map(eventMapper::toResponseDTO)
@@ -339,9 +338,6 @@ public class EventServiceImpl implements EventService {
         LocalDate today = LocalDate.now();
         List<Event> upcomingEvents = eventRepository.findUpcomingEvents(today);
         
-        if (upcomingEvents.isEmpty())
-            throw new EventNotFoundException("No upcoming events found");
-
         return upcomingEvents.stream()
                 .map(eventMapper::toResponseDTO)
                 .toList();

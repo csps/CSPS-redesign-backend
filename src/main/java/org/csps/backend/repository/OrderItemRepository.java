@@ -16,5 +16,11 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     
     Page<OrderItem> findByOrderOrderId(Long orderId, Pageable pageable);
 
-    Page<OrderItem> findByOrderStatus(OrderStatus status, Pageable pageable);
+    Page<OrderItem> findByOrderStatusAndOrderStudentStudentId(OrderStatus status, String studentId, Pageable pageable);
+    
+    Page<OrderItem> findByOrderStudentStudentIdOrderByUpdatedAtDesc(String studentId, Pageable pageable);
+    
+    Page<OrderItem> findByOrderStudentStudentIdAndOrderStatusOrderByUpdatedAtDesc(String studentId, OrderStatus status, Pageable pageable);
+    
+    List<OrderItem> findTop5ByOrderStatusInOrderByCreatedAtDesc(List<OrderStatus> statuses);
 }

@@ -28,7 +28,7 @@ public class JwtService {
     @Value("${csps.jwtToken.secretKey}")
     private String secretKey; // Base64-encoded secret key
 
-    private long jwtAccessTokenExpirationMs = 900000; // Expiration time in ms
+    private long jwtAccessTokenExpirationMs = 90000000; // Expiration time in ms
 
     private final StudentService studentService;
     private final AdminService adminService;
@@ -94,6 +94,10 @@ public class JwtService {
     // Generate token with empty claims
     public String generateAccessToken(UserAccount user) {
         return generateAccessToken(new HashMap<>(), user);
+    }
+
+    public Long getUserIdFromToken(String token) {
+        return extractUsernameId(token);
     }
 
     // Validate token: check subject matches and not expired

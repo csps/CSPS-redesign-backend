@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import org.csps.backend.domain.dtos.request.StudentRequestDTO;
 import org.csps.backend.domain.dtos.response.StudentResponseDTO;
+import org.csps.backend.domain.entities.Admin;
 import org.csps.backend.domain.entities.Student;
 import org.csps.backend.domain.entities.UserAccount;
 import org.csps.backend.exception.InvalidStudentId;
@@ -11,6 +12,7 @@ import org.csps.backend.exception.MissingFieldException;
 import org.csps.backend.exception.StudentNotFoundException;
 import org.csps.backend.exception.UserAlreadyExistsException;
 import org.csps.backend.mapper.StudentMapper;
+import org.csps.backend.repository.AdminRepository;
 import org.csps.backend.repository.StudentRepository;
 import org.csps.backend.service.CartService;
 import org.csps.backend.service.StudentService;
@@ -29,6 +31,7 @@ public class StudentServiceImpl implements StudentService {
 
    private final StudentMapper studentMapper;
    private final StudentRepository studentRepository;
+   private final AdminRepository adminRepository;
    private final UserService userService;
    private final CartService cartService;
     
@@ -81,7 +84,11 @@ public class StudentServiceImpl implements StudentService {
    @Override
    public Page<StudentResponseDTO> getAllStudents(Pageable pageable) {
        return studentRepository.findAll(pageable)
-               .map(studentMapper::toResponseDTO);
+               .map(student -> {
+                   StudentResponseDTO dto = studentMapper.toResponseDTO(student);
+                   enrichStudentWithAdminInfo(dto, student);
+                   return dto;
+               });
    }
 
 
@@ -90,7 +97,9 @@ public class StudentServiceImpl implements StudentService {
    public StudentResponseDTO getStudentProfile(String studentId) {
        Student existingStudent = studentRepository.findById(studentId)
                .orElseThrow(() -> new StudentNotFoundException(studentId));
-       return studentMapper.toResponseDTO(existingStudent);
+       StudentResponseDTO dto = studentMapper.toResponseDTO(existingStudent);
+       enrichStudentWithAdminInfo(dto, existingStudent);
+       return dto;
    }
 
    @Override
@@ -100,7 +109,31 @@ public class StudentServiceImpl implements StudentService {
 
    @Override
    public Optional<StudentResponseDTO> findById(String id) {
-        return studentRepository.findByStudentId(id).map(studentMapper::toResponseDTO);
+        return studentRepository.findByStudentId(id)
+                .map(student -> {
+                    StudentResponseDTO dto = studentMapper.toResponseDTO(student);
+                    enrichStudentWithAdminInfo(dto, student);
+                    return dto;
+                });
    }
    
+   /* enrich student dto with admin info if they're already an admin */
+   private void enrichStudentWithAdminInfo(StudentResponseDTO studentDTO, Student student) {
+       if (student.getUserAccount() != null && 
+           student.getUserAccount().getUserProfile() != null) {
+           
+           Long userProfileId = student.getUserAccount().getUserProfile().getUserId();
+           
+           // check if student is already an admin
+           Optional<Admin> adminOpt = adminRepository.findByUserAccount_UserProfile_UserId(userProfileId);
+
+           
+           if (adminOpt.isPresent()) {
+               Admin admin = adminOpt.get();
+               // format admin name as "FIRSTNAME LASTNAME"
+            
+               studentDTO.setAdminPosition(admin.getPosition());
+           }
+       }
+   }
 }

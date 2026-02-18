@@ -10,6 +10,7 @@ import org.csps.backend.service.MerchVariantService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -82,5 +83,15 @@ public class MerchVariantController {
         return ResponseEntity.ok(merchVariantService.getAllMerchVariants());
     }
 
+    /**
+     * Deletes a specific variant and all its associated items.
+     * Also deletes associated S3 image.
+     */
+    @DeleteMapping("/{merchVariantId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<GlobalResponseBuilder<Void>> deleteVariant(@PathVariable Long merchVariantId) {
+        merchVariantService.deleteVariant(merchVariantId);
+        return GlobalResponseBuilder.buildResponse("Merch variant deleted successfully", null, HttpStatus.NO_CONTENT);
+    }
  
 }

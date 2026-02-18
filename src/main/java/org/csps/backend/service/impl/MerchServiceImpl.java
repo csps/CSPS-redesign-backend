@@ -225,4 +225,33 @@ public class MerchServiceImpl implements MerchService {
         Merch updated = merchRepository.save(foundMerch);
         return merchMapper.toDetailedResponseDTO(updated);    
     }
+
+    @Override
+    @Transactional
+    public void deleteMerch(Long merchId) {
+        // Find merch by ID
+        Merch merch = merchRepository.findById(merchId)
+                .orElseThrow(() -> new MerchNotFoundException("Merch not found with id: " + merchId));
+
+        // Delete S3 images for all variants
+        if (merch.getMerchVariantList() != null) {
+            for (MerchVariant variant : merch.getMerchVariantList()) {
+                if (variant.getS3ImageKey() != null 
+                    && !variant.getS3ImageKey().isEmpty() 
+                    && !variant.getS3ImageKey().equals("placeholder")) {
+                    s3Service.deleteFile(variant.getS3ImageKey());
+                }
+            }
+        }
+
+        // Delete S3 image for the merch itself
+        if (merch.getS3ImageKey() != null 
+            && !merch.getS3ImageKey().isEmpty() 
+            && !merch.getS3ImageKey().equals("placeholder")) {
+            s3Service.deleteFile(merch.getS3ImageKey());
+        }
+
+        // Delete merch (cascades to variants and items)
+        merchRepository.delete(merch);
+    }
 }

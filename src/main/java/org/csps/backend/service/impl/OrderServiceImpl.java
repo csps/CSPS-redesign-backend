@@ -5,10 +5,12 @@ import java.util.List;
 
 import org.csps.backend.domain.dtos.request.OrderItemRequestDTO;
 import org.csps.backend.domain.dtos.request.OrderPostRequestDTO;
+import org.csps.backend.domain.dtos.request.OrderSearchDTO;
 import org.csps.backend.domain.dtos.response.OrderItemResponseDTO;
 import org.csps.backend.domain.dtos.response.OrderResponseDTO;
 import org.csps.backend.domain.entities.Order;
 import org.csps.backend.domain.entities.Student;
+import org.csps.backend.domain.enums.OrderStatus;
 import org.csps.backend.exception.CartItemNotFoundException;
 import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.exception.OrderNotFoundException;
@@ -16,11 +18,13 @@ import org.csps.backend.exception.StudentNotFoundException;
 import org.csps.backend.mapper.OrderMapper;
 import org.csps.backend.repository.OrderRepository;
 import org.csps.backend.repository.StudentRepository;
+import org.csps.backend.repository.specification.OrderSpecification;
 import org.csps.backend.service.CartItemService;
 import org.csps.backend.service.OrderItemService;
 import org.csps.backend.service.OrderService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
@@ -58,6 +62,8 @@ public class OrderServiceImpl implements OrderService {
                 .orderDate(LocalDateTime.now())
                 .totalPrice(0.0) // Will be updated after adding order items
                 .updatedAt(LocalDateTime.now())
+                .orderStatus(OrderStatus.PENDING) // Default status for new orders
+                .quantity(0)
                 .build();
 
         // Save order first to get the generated orderId
@@ -170,6 +176,17 @@ public class OrderServiceImpl implements OrderService {
         
         // Delete cascades to order items due to orphanRemoval = true
         orderRepository.delete(order);
+    }
+
+    @Override
+    public Page<OrderResponseDTO> searchOrders(OrderSearchDTO searchDTO, Pageable pageable) {
+        if (searchDTO == null) {
+            searchDTO = new OrderSearchDTO();
+        }
+        
+        Specification<Order> spec = OrderSpecification.withFilters(searchDTO);
+        Page<Order> orders = orderRepository.findAll(spec, pageable);
+        return orders.map(orderMapper::toResponseDTO);
     }
 }
 

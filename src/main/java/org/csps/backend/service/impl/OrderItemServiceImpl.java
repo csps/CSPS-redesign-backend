@@ -112,16 +112,18 @@ public class OrderItemServiceImpl implements OrderItemService {
     }
     
     @Override
-    public Page<OrderItemResponseDTO> getOrderItemsByStatus(OrderStatus status, Pageable pageable) {
+    public Page<OrderItemResponseDTO> getOrderItemsByStatus(OrderStatus status, Pageable pageable, String studentId) {
         if (status == null) {
             throw new InvalidRequestException("Order status is required");
         }
         
-
-        Page<OrderItem> orderItems = orderItemRepository.findByOrderStatus(status,pageable);
-
-
+        if (studentId == null || studentId.isEmpty()) {
+            throw new InvalidRequestException("Student ID is required");
+        }
+        
+        Page<OrderItem> orderItems = orderItemRepository.findByOrderStatusAndOrderStudentStudentId(status, studentId, pageable);
         return orderItems.map(orderItemMapper::toResponseDTO);
+
     }
 
     @Override
@@ -156,6 +158,30 @@ public class OrderItemServiceImpl implements OrderItemService {
         return orderItems.map(orderItemMapper::toResponseDTO);
     }
     
+    @Override
+    public Page<OrderItemResponseDTO> getOrderItemsByStudentIdPaginated(String studentId, Pageable pageable) {
+        if (studentId == null || studentId.isEmpty()) {
+            throw new InvalidRequestException("Student ID is required");
+        }
+        
+        Page<OrderItem> orderItems = orderItemRepository.findByOrderStudentStudentIdOrderByUpdatedAtDesc(studentId, pageable);
+        return orderItems.map(orderItemMapper::toResponseDTO);
+    }
+
+    @Override
+    public Page<OrderItemResponseDTO> getOrderItemsByStudentIdAndStatusPaginated(String studentId, OrderStatus status, Pageable pageable) {
+        if (studentId == null || studentId.isEmpty()) {
+            throw new InvalidRequestException("Student ID is required");
+        }
+        
+        if (status == null) {
+            throw new InvalidRequestException("Order status is required");
+        }
+        
+        Page<OrderItem> orderItems = orderItemRepository.findByOrderStudentStudentIdAndOrderStatusOrderByUpdatedAtDesc(studentId, status, pageable);
+        return orderItems.map(orderItemMapper::toResponseDTO);
+    }
+
     @Override
     @Transactional
     public OrderItemResponseDTO updateOrderItemStatus(Long id, OrderStatus status) {

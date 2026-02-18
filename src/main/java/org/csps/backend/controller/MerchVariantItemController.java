@@ -2,9 +2,11 @@ package org.csps.backend.controller;
 
 import java.util.List;
 
+import org.csps.backend.annotation.Auditable;
 import org.csps.backend.domain.dtos.request.MerchVariantItemRequestDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.MerchVariantItemResponseDTO;
+import org.csps.backend.domain.enums.AuditAction;
 import org.csps.backend.domain.enums.ClothingSizing;
 import org.csps.backend.service.MerchVariantItemService;
 import org.springframework.http.HttpStatus;
@@ -36,6 +38,7 @@ public class MerchVariantItemController {
      */
     @PostMapping("/{merchVariantId}/add")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.CREATE, resourceType = "MerchVariantItem")
     public ResponseEntity<GlobalResponseBuilder<MerchVariantItemResponseDTO>> addItemToVariant(
             @PathVariable Long merchVariantId,
             @Valid @RequestBody MerchVariantItemRequestDTO requestDTO) {
@@ -49,6 +52,7 @@ public class MerchVariantItemController {
      */
     @PostMapping("/{merchVariantId}/add-multiple")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.CREATE, resourceType = "MerchVariantItem")
     public ResponseEntity<GlobalResponseBuilder<List<MerchVariantItemResponseDTO>>> addMultipleItemsToVariant(
             @PathVariable Long merchVariantId,
             @Valid @RequestBody List<MerchVariantItemRequestDTO> requestDTOs) {
@@ -96,6 +100,7 @@ public class MerchVariantItemController {
      */
     @PatchMapping("/{id}/stock")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.UPDATE, resourceType = "MerchVariantItem")
     public ResponseEntity<GlobalResponseBuilder<MerchVariantItemResponseDTO>> updateStockQuantity(
             @PathVariable Long id,
             @RequestParam Integer quantity) {
@@ -109,6 +114,7 @@ public class MerchVariantItemController {
      */
     @PatchMapping("/{id}/price")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.UPDATE, resourceType = "MerchVariantItem")
     public ResponseEntity<GlobalResponseBuilder<MerchVariantItemResponseDTO>> updatePrice(
             @PathVariable Long id,
             @RequestParam Double price) {
@@ -122,6 +128,7 @@ public class MerchVariantItemController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.DELETE, resourceType = "MerchVariantItem")
     public ResponseEntity<GlobalResponseBuilder<Void>> deleteItem(@PathVariable Long id) {
         merchVariantItemService.deleteItem(id);
         return GlobalResponseBuilder.buildResponse("Merch variant item deleted successfully", null, HttpStatus.NO_CONTENT);

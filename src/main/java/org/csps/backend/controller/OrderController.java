@@ -1,11 +1,13 @@
 package org.csps.backend.controller;
 
 import org.csps.backend.domain.dtos.request.OrderPostRequestDTO;
+import org.csps.backend.domain.dtos.request.OrderSearchDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.OrderResponseDTO;
 import org.csps.backend.service.OrderService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -56,19 +59,9 @@ public class OrderController {
     }
 
     /**
-     * Get order by ID.
-     */
-    @GetMapping("/{orderId}")
-    @PreAuthorize("hasRole('STUDENT') or hasRole('ADMIN')")
-    public ResponseEntity<GlobalResponseBuilder<OrderResponseDTO>> getOrderById(
-            @PathVariable Long orderId) {
-        OrderResponseDTO responseDTO = orderService.getOrderById(orderId);
-        return GlobalResponseBuilder.buildResponse("Order retrieved successfully", responseDTO, HttpStatus.OK);
-    }
-
-    /**
      * Get all orders for the authenticated student (paginated by default).
      * Query params: page (0-indexed), size (default 5), sort (e.g., "orderDate,desc")
+     * IMPORTANT: This must come BEFORE /{orderId} to avoid route conflicts
      */
     @GetMapping("/my-orders")
     @PreAuthorize("hasRole('STUDENT')")
@@ -77,6 +70,17 @@ public class OrderController {
             @PageableDefault(size = 5) Pageable pageable) {
         Page<OrderResponseDTO> responseDTOs = orderService.getOrdersByStudentIdPaginated(studentId, pageable);
         return GlobalResponseBuilder.buildResponse("Orders retrieved successfully", responseDTOs, HttpStatus.OK);
+    }
+
+    /**
+     * Get order by ID.
+     */
+    @GetMapping("/{orderId}")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('ADMIN')")
+    public ResponseEntity<GlobalResponseBuilder<OrderResponseDTO>> getOrderById(
+            @PathVariable Long orderId) {
+        OrderResponseDTO responseDTO = orderService.getOrderById(orderId);
+        return GlobalResponseBuilder.buildResponse("Order retrieved successfully", responseDTO, HttpStatus.OK);
     }
 
     /**
@@ -91,6 +95,21 @@ public class OrderController {
             @PageableDefault(size = 3) Pageable pageable) {
         Page<OrderResponseDTO> responseDTOs = orderService.getAllOrdersPaginatedSortByDate(pageable);
         return GlobalResponseBuilder.buildResponse("Orders retrieved successfully", responseDTOs, HttpStatus.OK);
+    }
+
+    /**
+     * Search and filter orders (admin only).
+     * Advanced filtering by student name/ID, order status, and date range.
+     * Query params: studentName, studentId, status, startDate, endDate, 
+     *               page (0-indexed), size (default 20), sort (e.g., "orderDate,desc")
+     */
+    @GetMapping("/search")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
+    public ResponseEntity<GlobalResponseBuilder<Page<OrderResponseDTO>>> searchOrders(
+            @ModelAttribute OrderSearchDTO searchDTO,
+            @PageableDefault(size = 20, sort = "orderDate", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<OrderResponseDTO> results = orderService.searchOrders(searchDTO, pageable);
+        return GlobalResponseBuilder.buildResponse("Orders retrieved successfully", results, HttpStatus.OK);
     }
 
     /**

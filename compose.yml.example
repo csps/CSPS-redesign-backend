@@ -24,7 +24,10 @@ services:
       - METAGRAPH_URL= YOUR_METAGRAPH_URL
       - METAGRAPH_API_KEY = YOUR_METAGRAPH_API_KEY
       - METAGRAPH_PAGEID = YOUR_METAGRAPH_PAGEID
-      - 
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USERNAME=your_email@gmail.com
+      - SMTP_PASSWORD=your_app_password
     tty: true
     stdin_open: true
     depends_on: # Remove this section if not using the local database service
