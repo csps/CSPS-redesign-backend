@@ -9,9 +9,11 @@ import org.csps.backend.domain.enums.OrderStatus;
 import org.csps.backend.service.OrderItemService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.Builder.Default;
 
 @RestController
 @RequestMapping("/api/order-items")
@@ -87,8 +90,37 @@ public class OrderItemController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
     public ResponseEntity<GlobalResponseBuilder<Page<OrderItemResponseDTO>>> getOrderItemsByStatus(
             @RequestParam OrderStatus status,
-            Pageable pageable) {
-        Page<OrderItemResponseDTO> page = orderItemService.getOrderItemsByStatus(status, pageable);
+            @PageableDefault(size = 5) Pageable pageable,
+            @AuthenticationPrincipal String studentId) {
+        Page<OrderItemResponseDTO> page = orderItemService.getOrderItemsByStatus(status, pageable, studentId);
+        return GlobalResponseBuilder.buildResponse("Order items retrieved successfully", page, HttpStatus.OK);
+    }
+
+    /**
+     * Get all order items for the authenticated student (paginated).
+     * Query params: page (0-indexed), size (default 20), sort (e.g., "updatedAt,desc")
+     * IMPORTANT: This must come BEFORE /{orderId} to avoid route conflicts
+     */
+    @GetMapping("/my-items")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<GlobalResponseBuilder<Page<OrderItemResponseDTO>>> getMyOrderItems(
+            @AuthenticationPrincipal String studentId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Page<OrderItemResponseDTO> page = orderItemService.getOrderItemsByStudentIdPaginated(studentId, pageable);
+        return GlobalResponseBuilder.buildResponse("Order items retrieved successfully", page, HttpStatus.OK);
+    }
+
+    /**
+     * Get all order items for the authenticated student with optional status filter (paginated).
+     * Query params: status (optional), page (0-indexed), size (default 20), sort (e.g., "updatedAt,desc")
+     */
+    @GetMapping("/my-items/status")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<GlobalResponseBuilder<Page<OrderItemResponseDTO>>> getMyOrderItemsByStatus(
+            @AuthenticationPrincipal String studentId,
+            @RequestParam OrderStatus status,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Page<OrderItemResponseDTO> page = orderItemService.getOrderItemsByStudentIdAndStatusPaginated(studentId, status, pageable);
         return GlobalResponseBuilder.buildResponse("Order items retrieved successfully", page, HttpStatus.OK);
     }
     

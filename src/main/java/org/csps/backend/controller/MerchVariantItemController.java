@@ -38,6 +38,7 @@ public class MerchVariantItemController {
      */
     @PostMapping("/{merchVariantId}/add")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.CREATE, resourceType = "MerchVariantItem")
     public ResponseEntity<GlobalResponseBuilder<MerchVariantItemResponseDTO>> addItemToVariant(
             @PathVariable Long merchVariantId,
             @Valid @RequestBody MerchVariantItemRequestDTO requestDTO) {
@@ -51,6 +52,7 @@ public class MerchVariantItemController {
      */
     @PostMapping("/{merchVariantId}/add-multiple")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.CREATE, resourceType = "MerchVariantItem")
     public ResponseEntity<GlobalResponseBuilder<List<MerchVariantItemResponseDTO>>> addMultipleItemsToVariant(
             @PathVariable Long merchVariantId,
             @Valid @RequestBody List<MerchVariantItemRequestDTO> requestDTOs) {
@@ -126,6 +128,7 @@ public class MerchVariantItemController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.DELETE, resourceType = "MerchVariantItem")
     public ResponseEntity<GlobalResponseBuilder<Void>> deleteItem(@PathVariable Long id) {
         merchVariantItemService.deleteItem(id);
         return GlobalResponseBuilder.buildResponse("Merch variant item deleted successfully", null, HttpStatus.NO_CONTENT);

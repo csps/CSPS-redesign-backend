@@ -1,11 +1,15 @@
 package org.csps.backend.controller;
 
 
+import java.util.List;
+
+import org.csps.backend.annotation.Auditable;
 import org.csps.backend.domain.dtos.request.AdminPostRequestDTO;
 import org.csps.backend.domain.dtos.request.AdminUnsecureRequestDTO;
 import org.csps.backend.domain.dtos.response.AdminResponseDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.enums.AdminPosition;
+import org.csps.backend.domain.enums.AuditAction;
 import org.csps.backend.service.AdminService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,31 +22,29 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import java.util.List;
-
 
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/admin")
-@PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
 @RequiredArgsConstructor
 public class AdminController {
 
     private final AdminService adminService;
 
     @PostMapping("/add")
+    @Auditable(action = AuditAction.CREATE, resourceType = "Admin")
     public ResponseEntity<GlobalResponseBuilder<AdminResponseDTO>> addAdmin(@RequestBody AdminPostRequestDTO adminPostRequestDTO) {
     
         AdminResponseDTO adminResponseDTO = adminService.createAdmin(adminPostRequestDTO);
 
         String message = "Admin added successfully";
-
+        
         return GlobalResponseBuilder.buildResponse(message, adminResponseDTO, HttpStatus.CREATED);
     }
 
     @PostMapping("/setup")
-    @PreAuthorize("permitAll()")
+    @Auditable(action = AuditAction.CREATE, resourceType = "Admin")
     public ResponseEntity<GlobalResponseBuilder<AdminResponseDTO>> setupAdmin(@RequestBody AdminUnsecureRequestDTO adminUnsecureRequestDTO) {
     
         AdminResponseDTO adminResponseDTO = adminService.createAdminUnsecure(adminUnsecureRequestDTO);
@@ -53,6 +55,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/delete/{adminId}")
+    @Auditable(action = AuditAction.DELETE, resourceType = "Admin")
     public ResponseEntity<GlobalResponseBuilder<AdminResponseDTO>> deleteAdmin(@PathVariable Long adminId) {
         AdminResponseDTO adminResponseDTO = adminService.deleteAdmin(adminId);
         String message = "Admin deleted successfully";
@@ -60,6 +63,7 @@ public class AdminController {
     }
 
     @PostMapping("/grant-access")
+    @Auditable(action = AuditAction.CREATE, resourceType = "Admin")
     public ResponseEntity<GlobalResponseBuilder<AdminResponseDTO>> grantAdminAccess(
             @RequestParam String studentId,
             @RequestParam AdminPosition position) {
@@ -77,6 +81,7 @@ public class AdminController {
 
     @DeleteMapping("/revoke-access/{adminId}")
     @PreAuthorize("hasRole('DEVELOPER')")
+    @Auditable(action = AuditAction.DELETE, resourceType = "Admin")
     public ResponseEntity<GlobalResponseBuilder<AdminResponseDTO>> revokeAdminAccess(@PathVariable Long adminId) {
         AdminResponseDTO adminResponseDTO = adminService.revokeAdminAccess(adminId);
         String message = "Admin access revoked successfully";
