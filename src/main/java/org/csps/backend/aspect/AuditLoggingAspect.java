@@ -51,8 +51,16 @@ public class AuditLoggingAspect {
     private Long getCurrentAdminId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
-            Long adminId = (Long) authentication.getPrincipal();
-            return adminId;
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof String) {
+                try {
+                    return Long.parseLong((String) principal);
+                } catch (NumberFormatException e) {
+                    log.error("failed to parse admin ID from principal: {}", e.getMessage());
+                }
+            } else if (principal instanceof Long) {
+                return (Long) principal;
+            }
         }
         return null;
     }
