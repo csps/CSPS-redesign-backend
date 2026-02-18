@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.Builder.Default;
 
 @RestController
 @RequestMapping("/api/order-items")
