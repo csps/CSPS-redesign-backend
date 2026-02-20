@@ -62,10 +62,19 @@ public class EmailService {
      */
     public void sendVerificationEmail(String to, String userName, String verificationLink) {
         String subject = "Email Verification - CSPS Account";
-        String htmlBody = buildVerificationEmailTemplate(userName, verificationLink);
+        String htmlBody = buildVerificationEmailTemplate(userName, null, verificationLink);
         sendHtmlEmail(to, subject, htmlBody);
     }
     
+    /**
+     * send email update verification code
+     */
+    public void sendEmailUpdateVerificationEmail(String to, String userName, String newEmail, String verificationCode) {
+        String subject = "Email Update Verification - CSPS Account";
+        String htmlBody = buildVerificationEmailTemplate(userName, newEmail, verificationCode);
+        sendHtmlEmail(to, subject, htmlBody);
+    }
+
     /**
      * send password recovery email
      */
@@ -78,16 +87,21 @@ public class EmailService {
     /**
      * build verification email template
      */
-    private String buildVerificationEmailTemplate(String userName, String verificationLink) {
+    private String buildVerificationEmailTemplate(String userName, String newEmail, String verificationLink) {
+        String emailContext = newEmail == null ? "Please verify your email address by clicking the link below:" :
+                                                 "You have requested to change your email to <strong>%s</strong>. Please verify this change by clicking the link below:".formatted(newEmail);
+
+        String subjectLine = newEmail == null ? "Verify your email" : "Confirm your email change";
+
         return """
             <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
                 <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h2 style="color: #007bff;">Email Verification Required</h2>
+                    <h2 style="color: #007bff;">%s</h2>
                     
                     <p>Hello <strong>%s</strong>,</p>
                     
-                    <p>Thank you for registering with CSPS. Please verify your email address by clicking the link below:</p>
+                    <p>%s</p>
                     
                     <div style="margin: 30px 0;">
                         <a href="%s" style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; display: inline-block;">Verify Email</a>
@@ -99,11 +113,11 @@ public class EmailService {
                     <p>This link expires in 24 hours.</p>
                     
                     <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-                    <p style="font-size: 12px; color: #666;">If you did not register for this account, please ignore this email.</p>
+                    <p style="font-size: 12px; color: #666;">If you did not request this, please ignore this email.</p>
                 </div>
             </body>
             </html>
-            """.formatted(userName, verificationLink, verificationLink);
+            """.formatted(subjectLine, userName, emailContext, verificationLink, verificationLink);
     }
     
     /**

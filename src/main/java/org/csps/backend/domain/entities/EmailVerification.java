@@ -54,6 +54,9 @@ public class EmailVerification {
     
     @Column
     private LocalDateTime verifiedAt;
+
+    @Column
+    private String newEmail;
     
     @Column(nullable = false)
     private Integer attemptCount = 0;

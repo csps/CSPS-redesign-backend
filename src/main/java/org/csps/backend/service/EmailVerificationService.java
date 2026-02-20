@@ -34,6 +34,16 @@ public interface EmailVerificationService {
      * resend verification code
      */
     EmailVerification resendVerificationCode(Long userAccountId);
+
+    /**
+     * initiates the email update verification process
+     */
+    EmailVerification initiateEmailUpdate(Long userAccountId, String newEmail);
+
+    /**
+     * confirms the email update with the provided verification code
+     */
+    EmailVerification confirmEmailUpdate(Long userAccountId, String newEmail, String code);
     
     /**
      * cleanup expired verifications
