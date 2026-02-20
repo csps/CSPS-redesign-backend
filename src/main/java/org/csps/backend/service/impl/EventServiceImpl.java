@@ -17,6 +17,8 @@ import org.csps.backend.mapper.EventMapper;
 import org.csps.backend.repository.EventRepository;
 import org.csps.backend.service.EventService;
 import org.csps.backend.service.S3Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -367,4 +369,9 @@ public class EventServiceImpl implements EventService {
                 .toList();
     }
 
+    @Override
+    public Page<EventResponseDTO> getEventsByStudentId(Pageable pageable, String studentId) {
+        Page<Event> eventsPage = eventRepository.findByParticipants_Student_StudentId(pageable, studentId);
+        return eventsPage.map(eventMapper::toResponseDTO);
+    }
 }
