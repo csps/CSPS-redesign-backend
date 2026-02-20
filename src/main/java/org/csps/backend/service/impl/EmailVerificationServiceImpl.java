@@ -1,16 +1,20 @@
 package org.csps.backend.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.Random;
 
 import org.csps.backend.domain.entities.EmailVerification;
 import org.csps.backend.domain.entities.UserAccount;
+import org.csps.backend.exception.EmailAlreadyExistsException;
 import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.exception.ResourceNotFoundException;
 import org.csps.backend.repository.EmailVerificationRepository;
 import org.csps.backend.repository.UserAccountRepository;
+import org.csps.backend.repository.UserProfileRepository;
 import org.csps.backend.service.EmailService;
 import org.csps.backend.service.EmailVerificationService;
+import org.csps.backend.service.UserAccountService;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
@@ -24,7 +28,9 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     
     private final EmailVerificationRepository emailVerificationRepository;
     private final UserAccountRepository userAccountRepository;
+    private final UserProfileRepository userProfileRepository; // Injected
     private final EmailService emailService;
+    private final UserAccountService userAccountService; // Injected
     
     private long verificationExpirationMinutes = 5; // default to 10 minutes, can be overridden by application properties
     
@@ -52,7 +58,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
             throw new InvalidRequestException("user account is already verified");
         
         // revoke previous verification
-        emailVerificationRepository.findByUserAccountUserAccountId(userAccount.getUserAccountId())
+        emailVerificationRepository.findByUserAccountUserAccountIdAndNewEmailIsNull(userAccount.getUserAccountId())
                 .ifPresent(ev -> {
                     if (!ev.getIsVerified()) {
                         emailVerificationRepository.delete(ev);
@@ -84,7 +90,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         String email = userAccount.getUserProfile() != null ? 
                 userAccount.getUserProfile().getEmail() : userAccount.getUsername();
         
-        sendVerificationCodeEmail(email, userName, verificationCode);
+        emailService.sendVerificationEmail(email, userName, verificationCode); // Modified to use code, not link for initial verification
         
         log.info("verification code generated and sent for user: {}", userAccount.getUserAccountId());
         return savedVerification;
@@ -101,7 +107,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         }
 
 
-        EmailVerification verification = emailVerificationRepository.findByUserAccountUserAccountId(userAccountId)
+        EmailVerification verification = emailVerificationRepository.findByUserAccountUserAccountIdAndNewEmailIsNull(userAccountId)
                 .orElseThrow(() -> new ResourceNotFoundException("no verification found for user"));    
 
         if (verification.getIsVerified()) {
@@ -133,6 +139,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         // mark user account as verified
         UserAccount userAccount = verification.getUserAccount();
         userAccount.setIsVerified(true);
+        userAccountRepository.save(userAccount); // Save the updated userAccount
         
         log.info("email verified for user: {}", userAccountId);
         return verification;
@@ -164,7 +171,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
             throw new InvalidRequestException("user account id is required");
         }
         
-        EmailVerification verification = emailVerificationRepository.findByUserAccountUserAccountId(userAccountId)
+        EmailVerification verification = emailVerificationRepository.findByUserAccountUserAccountIdAndNewEmailIsNull(userAccountId)
                 .orElseThrow(() -> new ResourceNotFoundException("verification not found for user"));
         
         if (verification.getIsVerified()) {
@@ -176,6 +183,115 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         
         UserAccount userAccount = verification.getUserAccount();
         return generateAndSendVerificationCode(userAccount);
+    }
+
+    /**
+     * initiates the email update verification process
+     */
+    @Override
+    @Transactional
+    public EmailVerification initiateEmailUpdate(Long userAccountId, String newEmail) {
+        if (userAccountId == null || userAccountId <= 0) {
+            throw new InvalidRequestException("User account ID is required");
+        }
+        if (newEmail == null || newEmail.isBlank()) {
+            throw new InvalidRequestException("New email is required");
+        }
+
+        UserAccount userAccount = userAccountRepository.findById(userAccountId)
+                .orElseThrow(() -> new ResourceNotFoundException("User account not found with ID: " + userAccountId));
+
+        if (!userAccount.getIsVerified()) {
+            throw new InvalidRequestException("User account is not verified. Please verify your current email first.");
+        }
+
+        if (userProfileRepository.existsByEmail(newEmail)) {
+            throw new EmailAlreadyExistsException("Email already exists: " + newEmail);
+        }
+
+        // Revoke any pending email update verifications for this user
+        emailVerificationRepository.findByUserAccountUserAccountIdAndNewEmailIsNotNull(userAccountId)
+            .ifPresent(emailVerificationRepository::delete);
+
+        String verificationCode = String.format("%06d", new Random().nextInt(1000000));
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expiresAt = now.plusMinutes(verificationExpirationMinutes);
+
+        EmailVerification verification = EmailVerification.builder()
+                .userAccount(userAccount)
+                .verificationCode(verificationCode)
+                .createdAt(now)
+                .expiresAt(expiresAt)
+                .isVerified(false)
+                .attemptCount(0)
+                .maxAttempts(5)
+                .newEmail(newEmail) // Store the new email
+                .build();
+
+        EmailVerification savedVerification = emailVerificationRepository.save(verification);
+        
+        // Send email to the *current* email address of the user
+        String userName = userAccount.getUserProfile() != null ? 
+                userAccount.getUserProfile().getFirstName() : userAccount.getUsername();
+        String currentEmail = userAccount.getUserProfile() != null ? 
+                userAccount.getUserProfile().getEmail() : userAccount.getUsername();
+        
+        emailService.sendEmailUpdateVerificationEmail(currentEmail, userName, newEmail, verificationCode);
+        
+        log.info("Email update verification code generated and sent for user: {} to current email: {}", userAccountId, currentEmail);
+        return savedVerification;
+    }
+
+    /**
+     * confirms the email update with the provided verification code
+     */
+    @Override
+    @Transactional
+    public EmailVerification confirmEmailUpdate(Long userAccountId, String newEmail, String code) {
+        if (userAccountId == null || userAccountId <= 0) {
+            throw new InvalidRequestException("User account ID is required");
+        }
+        if (newEmail == null || newEmail.isBlank()) {
+            throw new InvalidRequestException("New email is required");
+        }
+        if (code == null || code.isEmpty()) {
+            throw new InvalidRequestException("Verification code is required");
+        }
+
+        EmailVerification verification = emailVerificationRepository.findByUserAccountUserAccountIdAndNewEmail(userAccountId, newEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("No email update verification found for user or new email."));
+
+        if (verification.getIsVerified()) {
+            throw new InvalidRequestException("Email has already been updated with this verification.");
+        }
+
+        if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
+            emailVerificationRepository.delete(verification); // Clean up expired verification
+            throw new InvalidRequestException("Verification code has expired. Please request a new code.");
+        }
+
+        if (verification.isMaxAttemptsReached()) {
+            log.warn("Max verification attempts reached for email update for user: {}", userAccountId);
+            emailVerificationRepository.delete(verification); // Clean up after max attempts
+            throw new InvalidRequestException("Maximum verification attempts reached. Please request a new code.");
+        }
+
+        if (!verification.getVerificationCode().equals(code)) {
+            emailVerificationRepository.incrementAttemptCount(verification.getEmailVerificationId());
+            log.warn("Invalid verification code provided for email update for user: {}", userAccountId);
+            throw new InvalidRequestException("Invalid verification code.");
+        }
+
+        // If code is correct, update the user's email
+        userAccountService.updateUserEmail(userAccountId, newEmail);
+
+        // Mark this specific email verification as verified
+        verification.setIsVerified(true);
+        verification.setVerifiedAt(LocalDateTime.now());
+        emailVerificationRepository.save(verification); // Save the updated verification status
+
+        log.info("Email successfully updated for user: {} to new email: {}", userAccountId, newEmail);
+        return verification;
     }
     
     @Override

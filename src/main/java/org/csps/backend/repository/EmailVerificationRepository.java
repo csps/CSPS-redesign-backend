@@ -15,9 +15,19 @@ import jakarta.transaction.Transactional;
 public interface EmailVerificationRepository extends JpaRepository<EmailVerification, Long> {
     
     /**
-     * find email verification by user account id
+     * find email verification by user account id where newEmail is null (initial verification)
      */
-    Optional<EmailVerification> findByUserAccountUserAccountId(Long userAccountId);
+    Optional<EmailVerification> findByUserAccountUserAccountIdAndNewEmailIsNull(Long userAccountId);
+
+    /**
+     * find email verification by user account id where newEmail is not null (email update verification)
+     */
+    Optional<EmailVerification> findByUserAccountUserAccountIdAndNewEmailIsNotNull(Long userAccountId);
+
+    /**
+     * find email verification by user account id and newEmail for update verification
+     */
+    Optional<EmailVerification> findByUserAccountUserAccountIdAndNewEmail(Long userAccountId, String newEmail);
     
     /**
      * find active verification code for verification
