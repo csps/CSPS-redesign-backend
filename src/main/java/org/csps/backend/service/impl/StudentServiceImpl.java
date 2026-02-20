@@ -3,10 +3,12 @@ package org.csps.backend.service.impl;
 import java.util.Optional;
 
 import org.csps.backend.domain.dtos.request.StudentRequestDTO;
+import org.csps.backend.domain.dtos.request.UserRequestDTO;
 import org.csps.backend.domain.dtos.response.StudentResponseDTO;
 import org.csps.backend.domain.entities.Admin;
 import org.csps.backend.domain.entities.Student;
 import org.csps.backend.domain.entities.UserAccount;
+import org.csps.backend.domain.entities.UserProfile;
 import org.csps.backend.exception.InvalidStudentId;
 import org.csps.backend.exception.MissingFieldException;
 import org.csps.backend.exception.StudentNotFoundException;
@@ -14,6 +16,7 @@ import org.csps.backend.exception.UserAlreadyExistsException;
 import org.csps.backend.mapper.StudentMapper;
 import org.csps.backend.repository.AdminRepository;
 import org.csps.backend.repository.StudentRepository;
+import org.csps.backend.repository.UserProfileRepository;
 import org.csps.backend.service.CartService;
 import org.csps.backend.service.StudentService;
 import org.csps.backend.service.UserService;
@@ -34,6 +37,7 @@ public class StudentServiceImpl implements StudentService {
    private final AdminRepository adminRepository;
    private final UserService userService;
    private final CartService cartService;
+   private final UserProfileRepository userProfileRepository;
     
     @Override
     @Transactional
@@ -115,6 +119,27 @@ public class StudentServiceImpl implements StudentService {
                     enrichStudentWithAdminInfo(dto, student);
                     return dto;
                 });
+   }
+   
+   @Override
+   @Transactional
+   public StudentResponseDTO completeStudentProfile(String studentId, UserRequestDTO userRequestDTO) {
+       /* find student and validate existence */
+       Student student = studentRepository.findById(studentId)
+               .orElseThrow(() -> new StudentNotFoundException("Student not found: " + studentId));
+        
+       /* get the user profile */
+       UserProfile profile = student.getUserAccount().getUserProfile();
+       
+       /* update profile with complete information */
+       profile.setMiddleName(userRequestDTO.getMiddleName());
+       profile.setBirthDate(userRequestDTO.getBirthDate());
+       profile.setEmail(userRequestDTO.getEmail());
+       profile.setIsProfileComplete(true);  // mark as complete
+       
+       userProfileRepository.save(profile);
+       
+       return studentMapper.toResponseDTO(student);
    }
    
    /* enrich student dto with admin info if they're already an admin */
