@@ -17,6 +17,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class AdminResponseDTO {
+    private Long adminId;
     private AdminPosition position;
 
 

@@ -271,4 +271,11 @@ public class AdminServiceImpl implements AdminService {
         
         return adminMapper.toResponseDTO(admin);
     }
+
+    @Override
+    public List<AdminResponseDTO> getAllAdmins() {
+        return adminRepository.findAll().stream()
+                .map(adminMapper::toResponseDTO)
+                .collect(Collectors.toList());
+    }
 }
