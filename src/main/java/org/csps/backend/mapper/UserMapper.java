@@ -20,6 +20,8 @@ public interface UserMapper {
     @Mapping(target = "email", source = "userProfile.email")
     @Mapping(target = "username", source = "username")
     @Mapping(target = "role", source = "role")
+    @Mapping(target = "isVerified", source = "isVerified")
+    @Mapping(target = "isProfileComplete", source = "userProfile.isProfileComplete")
     UserResponseDTO toResponseDTO(UserAccount userAccount);
 
 
