@@ -3,6 +3,7 @@ package org.csps.backend.mapper;
 import org.csps.backend.domain.dtos.request.EventPostRequestDTO;
 import org.csps.backend.domain.dtos.response.EventResponseDTO;
 import org.csps.backend.domain.entities.Event;
+import org.csps.backend.domain.entities.EventSession;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

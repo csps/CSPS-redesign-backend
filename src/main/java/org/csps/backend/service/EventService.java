@@ -6,6 +6,8 @@ import java.util.List;
 import org.csps.backend.domain.dtos.request.EventPostRequestDTO;
 import org.csps.backend.domain.dtos.request.EventUpdateRequestDTO;
 import org.csps.backend.domain.dtos.response.EventResponseDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface EventService {
@@ -22,4 +24,7 @@ public interface EventService {
     List<EventResponseDTO> getEventsByMonth(int year, int month);
     
     List<EventResponseDTO> getPastEvents();
+
+    /* Get Events By Student ID */
+    Page<EventResponseDTO> getEventsByStudentId(Pageable pageable, String studentId);
 }
