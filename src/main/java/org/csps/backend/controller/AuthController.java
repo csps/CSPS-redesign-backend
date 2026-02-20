@@ -4,13 +4,16 @@ import java.util.Map;
 
 import org.csps.backend.domain.dtos.request.ChangePasswordRequestDTO;
 import org.csps.backend.domain.dtos.request.SignInCredentialRequestDTO;
+import org.csps.backend.domain.dtos.request.UpdateEmailRequestDTO;
 import org.csps.backend.domain.dtos.response.AdminResponseDTO;
 import org.csps.backend.domain.dtos.response.AuthResponseDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.StudentResponseDTO;
+import org.csps.backend.domain.entities.EmailVerification;
 import org.csps.backend.domain.entities.UserAccount;
 import org.csps.backend.security.JwtService;
 import org.csps.backend.service.AdminService;
+import org.csps.backend.service.EmailVerificationService;
 import org.csps.backend.service.RefreshTokenService;
 import org.csps.backend.service.StudentService;
 import org.csps.backend.service.UserAccountService;
@@ -38,6 +41,7 @@ public class AuthController {
 
     private final UserAccountService userAccountService;
     private final UserService userService;
+    private final EmailVerificationService emailVerificationService; // Inject EmailVerificationService
 
     private final RefreshTokenService refreshTokenService;
     private final JwtService jwtService;
@@ -169,5 +173,47 @@ public class AuthController {
         return ResponseEntity.ok(admin);
     }
 
-    
+    /**
+     * Initiates the email update verification process by sending a code to the user's current email.
+     * Requires the user to be authenticated and their account to be verified.
+     */
+    @PostMapping("/email/update/initiate")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<GlobalResponseBuilder<EmailVerification>> initiateEmailUpdate(
+            Authentication authentication,
+            @RequestBody Map<String, String> requestBody) {
+        // Get userAccountId from authentication
+        Long userAccountId = (Long) authentication.getCredentials();
+        String newEmail = requestBody.get("newEmail");
+
+        // Call service
+        EmailVerification emailVerification = emailVerificationService.initiateEmailUpdate(userAccountId, newEmail);
+
+        return GlobalResponseBuilder.buildResponse(
+                "Verification code sent to your current email for update to: " + newEmail,
+                emailVerification,
+                HttpStatus.OK);
+    }
+
+    /**
+     * Confirms the email update using the provided verification code.
+     * Requires the user to be authenticated.
+     */
+    @PostMapping("/email/update/confirm")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<GlobalResponseBuilder<EmailVerification>> confirmEmailUpdate(
+            Authentication authentication,
+            @Valid @RequestBody UpdateEmailRequestDTO requestDTO) {
+        // Get userAccountId from authentication
+        Long userAccountId = (Long) authentication.getCredentials();
+
+        // Call service
+        EmailVerification emailVerification = emailVerificationService.confirmEmailUpdate(
+                userAccountId, requestDTO.getNewEmail(), requestDTO.getVerificationCode());
+
+        return GlobalResponseBuilder.buildResponse(
+                "Email updated successfully to: " + requestDTO.getNewEmail(),
+                emailVerification,
+                HttpStatus.OK);
+    }
 }

@@ -10,9 +10,14 @@ import org.csps.backend.domain.dtos.response.EventResponseDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.enums.AuditAction;
 import org.csps.backend.service.EventService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -89,6 +94,16 @@ public class EventController {
         return GlobalResponseBuilder.buildResponse(message, events, HttpStatus.OK);
     }
 
+    @GetMapping("/my-history")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<GlobalResponseBuilder<Page<EventResponseDTO>>> getMyEventHistory(
+        @AuthenticationPrincipal String studentId,
+        @PageableDefault(size = 5) Pageable pageable) {
+        Page<EventResponseDTO> events = eventService.getEventsByStudentId(pageable, studentId);
+        String message = "Event history retrieved successfully";
+        return GlobalResponseBuilder.buildResponse(message, events, HttpStatus.OK);
+    }
+
     @GetMapping("/past")
     @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
     public ResponseEntity<GlobalResponseBuilder<List<EventResponseDTO>>> getPastEvents() {
@@ -130,6 +145,8 @@ public class EventController {
         String message = "Event updated successfully";
         return GlobalResponseBuilder.buildResponse(message, event, HttpStatus.OK);
     }
+
+
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")

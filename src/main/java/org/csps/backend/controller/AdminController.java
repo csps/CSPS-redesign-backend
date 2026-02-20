@@ -80,12 +80,20 @@ public class AdminController {
     }
 
     @DeleteMapping("/revoke-access/{adminId}")
-    @PreAuthorize("hasRole('DEVELOPER')")
+    @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
     @Auditable(action = AuditAction.DELETE, resourceType = "Admin")
     public ResponseEntity<GlobalResponseBuilder<AdminResponseDTO>> revokeAdminAccess(@PathVariable Long adminId) {
         AdminResponseDTO adminResponseDTO = adminService.revokeAdminAccess(adminId);
         String message = "Admin access revoked successfully";
         return GlobalResponseBuilder.buildResponse(message, adminResponseDTO, HttpStatus.OK);
+    }
+
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
+    public ResponseEntity<GlobalResponseBuilder<List<AdminResponseDTO>>> getAllAdmins() {
+        List<AdminResponseDTO> admins = adminService.getAllAdmins();
+        String message = "All admins retrieved successfully";
+        return GlobalResponseBuilder.buildResponse(message, admins, HttpStatus.OK);
     }
 
 }
