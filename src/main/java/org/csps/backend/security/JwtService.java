@@ -62,6 +62,11 @@ public class JwtService {
         return getExpiration(token).before(new Date());
     }
 
+
+    public String getStudentIdFromToken(String token) {
+        return extractAllClaims(token).get("studentId", String.class);
+    }
+
     // Core method: build JWT with claims depending on role (Student/Admin)
     private String generateAccessToken(Map<String, Object> customClaim, UserAccount user) {
         

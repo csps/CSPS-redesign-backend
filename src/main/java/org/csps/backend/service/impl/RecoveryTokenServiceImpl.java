@@ -144,7 +144,7 @@ public class RecoveryTokenServiceImpl implements RecoveryTokenService {
      */
     private String buildRecoveryLink(String token) {
         /* This should match your frontend URL */
-        String baseUrl = "https://csps-redesign.vercel.app/"; // Adjust to your frontend URL
+        String baseUrl = "http://localhost:5173"; // Adjust to your frontend URL
         return baseUrl + "/reset-password?token=" + token;
     }
 }
