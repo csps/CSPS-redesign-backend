@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.csps.backend.exception.StudentNotParticipantException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -280,6 +281,92 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
+
+    // Handle participant already exists
+    @ExceptionHandler(ParticipantAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleParticipantAlreadyExists(ParticipantAlreadyExistsException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.CONFLICT.value());
+        error.put("error", "Participant Already Exists");
+        error.put("message", ex.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
+    // Handle participant not found
+    @ExceptionHandler(ParticipantNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleParticipantNotFound(ParticipantNotFoundException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.NOT_FOUND.value());
+        error.put("error", "Participant Not Found");
+        error.put("message", ex.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    // Handle invalid QR token
+    @ExceptionHandler(InvalidQRTokenException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidQRToken(InvalidQRTokenException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.BAD_REQUEST.value());
+        error.put("error", "Invalid QR Token");
+        error.put("message", ex.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    // Handle session not active
+    @ExceptionHandler(SessionNotActiveException.class)
+    public ResponseEntity<Map<String, Object>> handleSessionNotActive(SessionNotActiveException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.BAD_REQUEST.value());
+        error.put("error", "Session Not Active");
+        error.put("message", ex.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    // Handle duplicate check-in
+    @ExceptionHandler(DuplicateCheckInException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicateCheckIn(DuplicateCheckInException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.CONFLICT.value());
+        error.put("error", "Duplicate Check-In");
+        error.put("message", ex.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
+    // Handle event session not found
+    @ExceptionHandler(EventSessionNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleEventSessionNotFound(EventSessionNotFoundException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.NOT_FOUND.value());
+        error.put("error", "Event Session Not Found");
+        error.put("message", ex.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    // Handle student not participant
+    @ExceptionHandler(StudentNotParticipantException.class)
+    public ResponseEntity<Map<String, Object>> handleStudentNotParticipant(StudentNotParticipantException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.BAD_REQUEST.value());
+        error.put("error", "Student Not Participant");
+        error.put("message", ex.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
 }
+
+
 
 
