@@ -10,7 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,8 +35,8 @@ public class EmailVerification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long emailVerificationId;
     
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_account_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_account_id", nullable = false)
     private UserAccount userAccount;
     
     @Column(nullable = false, length = 6)
@@ -54,6 +54,9 @@ public class EmailVerification {
     
     @Column
     private LocalDateTime verifiedAt;
+
+    @Column
+    private String newEmail;
     
     @Column(nullable = false)
     private Integer attemptCount = 0;

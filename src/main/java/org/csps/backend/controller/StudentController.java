@@ -1,6 +1,8 @@
 package org.csps.backend.controller;
 
 import org.csps.backend.domain.dtos.request.StudentRequestDTO;
+import org.csps.backend.domain.dtos.request.UserRequestDTO;
+import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.StudentResponseDTO;
 import org.csps.backend.service.StudentService;
 import org.springframework.data.domain.Page;
@@ -12,11 +14,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 
@@ -51,5 +55,16 @@ public class StudentController {
        // should be map first to responseDTO
        StudentResponseDTO student = studentService.getStudentProfile(studentId);
        return ResponseEntity.ok(student);
+   }
+
+   @PutMapping("/{studentId}/complete-profile")
+   @PreAuthorize("hasRole('STUDENT')")
+   public ResponseEntity<GlobalResponseBuilder<StudentResponseDTO>> completeProfile(
+           @PathVariable String studentId,
+           @Valid @RequestBody UserRequestDTO userRequestDTO) {
+       
+       StudentResponseDTO updated = studentService.completeStudentProfile(studentId, userRequestDTO);
+       String message = "Profile completed successfully";
+       return GlobalResponseBuilder.buildResponse(message, updated, HttpStatus.OK);
    }
 }

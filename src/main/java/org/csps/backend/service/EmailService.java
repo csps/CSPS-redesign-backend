@@ -62,10 +62,19 @@ public class EmailService {
      */
     public void sendVerificationEmail(String to, String userName, String verificationLink) {
         String subject = "Email Verification - CSPS Account";
-        String htmlBody = buildVerificationEmailTemplate(userName, verificationLink);
+        String htmlBody = buildVerificationEmailTemplate(userName, null, verificationLink);
         sendHtmlEmail(to, subject, htmlBody);
     }
     
+    /**
+     * send email update verification code
+     */
+    public void sendEmailUpdateVerificationEmail(String to, String userName, String newEmail, String verificationCode) {
+        String subject = "Email Update Verification - CSPS Account";
+        String htmlBody = buildVerificationEmailTemplate(userName, newEmail, verificationCode);
+        sendHtmlEmail(to, subject, htmlBody);
+    }
+
     /**
      * send password recovery email
      */
@@ -78,32 +87,36 @@ public class EmailService {
     /**
      * build verification email template
      */
-    private String buildVerificationEmailTemplate(String userName, String verificationLink) {
+    private String buildVerificationEmailTemplate(String userName, String newEmail, String verificationLink) {
+        String emailContext = newEmail == null ? "Please verify your email address by clicking the link below:" :
+                                                 "You have requested to change your email to <strong>%s</strong>. Please verify this change by clicking the link below:".formatted(newEmail);
+
+        String subjectLine = newEmail == null ? "Verify your email" : "Confirm your email change";
+
         return """
             <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
                 <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h2 style="color: #007bff;">Email Verification Required</h2>
-                    
-                    <p>Hello <strong>%s</strong>,</p>
-                    
-                    <p>Thank you for registering with CSPS. Please verify your email address by clicking the link below:</p>
-                    
-                    <div style="margin: 30px 0;">
-                        <a href="%s" style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; display: inline-block;">Verify Email</a>
+                <h2 style="color: #7c3aed;">%s</h2>
+
+                <p>Hello <strong>%s</strong>,</p>
+
+                <p>%s</p>
+
+                <div style="margin: 30px 0; text-align: center;">
+                    <div style="display: inline-block; background-color: #f5f0ff; border: 2px solid #7c3aed; border-radius: 8px; padding: 20px 40px;">
+                    <span style="font-size: 42px; font-weight: bold; color: #7c3aed; letter-spacing: 10px;">%s</span>
                     </div>
-                    
-                    <p>Or copy and paste this link in your browser:</p>
-                    <p style="background-color: #f5f5f5; padding: 10px; word-break: break-all; font-size: 12px;">%s</p>
-                    
-                    <p>This link expires in 24 hours.</p>
-                    
-                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-                    <p style="font-size: 12px; color: #666;">If you did not register for this account, please ignore this email.</p>
+                </div>
+
+                <p>This code expires in 24 hours.</p>
+
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                <p style="font-size: 12px; color: #666;">If you did not request this, please ignore this email.</p>
                 </div>
             </body>
             </html>
-            """.formatted(userName, verificationLink, verificationLink);
+            """.formatted(subjectLine, userName, emailContext, verificationLink, verificationLink);
     }
     
     /**
@@ -147,13 +160,7 @@ public class EmailService {
                                             </tr>
                                         </table>
 
-                                        <!-- Fallback link -->
-                                        <p style="margin: 0 0 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af;">
-                                            Or copy this link
-                                        </p>
-                                        <p style="margin: 0 0 32px; font-size: 12px; color: #7c3aed; word-break: break-all; line-height: 1.5; background-color: #faf8ff; border: 1px solid #ede9fe; border-radius: 10px; padding: 12px 16px;">
-                                            %s
-                                        </p>
+                            
 
                                         <!-- Expiry notice -->
                                         <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="margin-bottom: 32px;">

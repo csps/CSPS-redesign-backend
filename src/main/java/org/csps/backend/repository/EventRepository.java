@@ -5,6 +5,8 @@ import java.time.LocalTime;
 import java.util.List;
 
 import org.csps.backend.domain.entities.Event;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -48,4 +50,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             @Param("startTime") LocalTime startTime,
             @Param("endTime") LocalTime endTime
         );
+
+    Page<Event> findByParticipants_Student_StudentId(Pageable pageable, String studentId);
 }

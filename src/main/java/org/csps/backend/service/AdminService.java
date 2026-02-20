@@ -21,4 +21,5 @@ public interface AdminService {
     boolean isStudentAlreadyAdmin(String studentId);
     List<AdminPosition> getAvailablePositions();
     AdminResponseDTO revokeAdminAccess(Long adminId);
+    List<AdminResponseDTO> getAllAdmins();
 }

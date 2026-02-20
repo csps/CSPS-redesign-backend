@@ -4,6 +4,8 @@ import java.time.LocalDate;
 
 import org.csps.backend.domain.enums.UserRole;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,4 +26,5 @@ public class UserResponseDTO {
     private String email;         // from profile
     private UserRole role;          // from account
     private Boolean isVerified;     // from account
+    private Boolean isProfileComplete;  // from profile
 }

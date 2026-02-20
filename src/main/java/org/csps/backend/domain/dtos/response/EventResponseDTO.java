@@ -2,6 +2,7 @@ package org.csps.backend.domain.dtos.response;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 import org.csps.backend.domain.enums.EventStatus;
 import org.csps.backend.domain.enums.EventType;

@@ -38,12 +38,16 @@ public class UserProfile {
 
     private String middleName;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private LocalDate birthDate;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     @Email(message = "Invalid email format")
     private String email;
+
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Builder.Default
+    private Boolean isProfileComplete = false;
 
     // One-to-many relationship: One UserProfile can have multiple UserAccounts
     @OneToMany(mappedBy = "userProfile", fetch = FetchType.LAZY)

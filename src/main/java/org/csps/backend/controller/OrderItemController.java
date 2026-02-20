@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.Builder.Default;
 
 @RestController
 @RequestMapping("/api/order-items")
@@ -132,7 +131,7 @@ public class OrderItemController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<GlobalResponseBuilder<OrderItemResponseDTO>> updateOrderItemStatus(
             @PathVariable Long id,
-            @Valid @RequestParam OrderStatus status) {
+            @RequestParam OrderStatus status) {
         OrderItemResponseDTO responseDTO = orderItemService.updateOrderItemStatus(id, status);
         return GlobalResponseBuilder.buildResponse("Order item status updated successfully", responseDTO, HttpStatus.OK);
     }
