@@ -36,7 +36,7 @@ public class EmailVerification {
     private Long emailVerificationId;
     
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_account_id", nullable = false, unique = true)
+    @JoinColumn(name = "user_account_id", nullable = false)
     private UserAccount userAccount;
     
     @Column(nullable = false, length = 6)
