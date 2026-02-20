@@ -33,7 +33,7 @@ public class StudentMigrationController {
      * @return list of migrated students with isProfileComplete=false
      */
     @PostMapping("/students/csv")
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")
     public ResponseEntity<GlobalResponseBuilder<List<StudentResponseDTO>>> migrateStudentsFromCsv(
             @RequestParam("file") MultipartFile file) {
         try {
