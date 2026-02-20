@@ -311,6 +311,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     }
     
     /**
+     * 
      * build verification code email template
      */
    private String buildVerificationCodeEmailTemplate(String userName, String verificationCode) {
