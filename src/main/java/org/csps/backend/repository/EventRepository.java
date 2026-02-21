@@ -45,11 +45,36 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             AND e.startTime < :endTime
             AND e.endTime > :startTime
         """)
-        boolean isDateOverlap(
-            @Param("eventDate") LocalDate eventDate,
-            @Param("startTime") LocalTime startTime,
-            @Param("endTime") LocalTime endTime
-        );
+    boolean isDateOverlap(
+        @Param("eventDate") LocalDate eventDate,
+        @Param("startTime") LocalTime startTime,
+        @Param("endTime") LocalTime endTime
+    );
 
     Page<Event> findByParticipants_Student_StudentId(Pageable pageable, String studentId);
+
+    /* Find upcoming events with pagination */
+    @Query("""
+            SELECT e FROM Event e
+            WHERE e.eventDate >= :today
+            ORDER BY e.eventDate ASC, e.startTime ASC
+        """)
+    Page<Event> findUpcomingEventsPaginated(@Param("today") LocalDate today, Pageable pageable);
+
+    /* Search events by name, location, or description within date range */
+    @Query("""
+            SELECT e FROM Event e
+            WHERE (LOWER(e.eventName) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(e.eventLocation) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(e.eventDescription) LIKE LOWER(CONCAT('%', :query, '%')))
+            AND (:startDate IS NULL OR e.eventDate >= :startDate)
+            AND (:endDate IS NULL OR e.eventDate <= :endDate)
+            ORDER BY e.eventDate ASC, e.startTime ASC
+        """)
+    Page<Event> searchEvents(
+        @Param("query") String query,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
+        Pageable pageable
+    );
 }

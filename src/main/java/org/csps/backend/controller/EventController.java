@@ -11,7 +11,6 @@ import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.enums.AuditAction;
 import org.csps.backend.service.EventService;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -78,8 +77,10 @@ public class EventController {
 
     @GetMapping("/upcoming")
     @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
-    public ResponseEntity<GlobalResponseBuilder<List<EventResponseDTO>>> getUpcomingEvents() {
-        List<EventResponseDTO> events = eventService.getUpcomingEvents();
+    public ResponseEntity<GlobalResponseBuilder<Page<EventResponseDTO>>> getUpcomingEvents(
+        @PageableDefault(size = 5) Pageable pageable
+    ) {
+        Page<EventResponseDTO> events = eventService.getUpcomingEventsPaginated(pageable);
         String message = "Upcoming events retrieved successfully";
         return GlobalResponseBuilder.buildResponse(message, events, HttpStatus.OK);
     }

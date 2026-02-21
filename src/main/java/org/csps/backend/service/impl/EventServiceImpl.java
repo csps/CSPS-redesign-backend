@@ -374,4 +374,23 @@ public class EventServiceImpl implements EventService {
         Page<Event> eventsPage = eventRepository.findByParticipants_Student_StudentId(pageable, studentId);
         return eventsPage.map(eventMapper::toResponseDTO);
     }
+
+    @Override
+    public Page<EventResponseDTO> getUpcomingEventsPaginated(Pageable pageable) {
+        /* retrieve upcoming events with pagination; default size is managed by pageable parameter */
+        LocalDate today = LocalDate.now();
+        Page<Event> upcomingEventsPage = eventRepository.findUpcomingEventsPaginated(today, pageable);
+        return upcomingEventsPage.map(eventMapper::toResponseDTO);
+    }
+
+    @Override
+    public Page<EventResponseDTO> searchEvent(String query, LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        /* search events by name, location, or description within optional date range */
+        if (query == null || query.trim().isEmpty()) {
+            throw new InvalidRequestException("Search query cannot be empty");
+        }
+        
+        Page<Event> searchResults = eventRepository.searchEvents(query.trim(), startDate, endDate, pageable);
+        return searchResults.map(eventMapper::toResponseDTO);
+    }
 }

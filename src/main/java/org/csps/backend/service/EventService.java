@@ -20,6 +20,7 @@ public interface EventService {
     EventResponseDTO patchEvent(Long eventId, EventUpdateRequestDTO eventPostRequestDTO, MultipartFile eventImage) throws Exception;
     List<EventResponseDTO> getEventByDate(LocalDate eventDate);
     List<EventResponseDTO> getUpcomingEvents();
+    Page<EventResponseDTO> getUpcomingEventsPaginated(Pageable pageable);
     
     List<EventResponseDTO> getEventsByMonth(int year, int month);
     
@@ -27,4 +28,7 @@ public interface EventService {
 
     /* Get Events By Student ID */
     Page<EventResponseDTO> getEventsByStudentId(Pageable pageable, String studentId);
+
+    /* Search Events by name, date range, and location */
+    Page<EventResponseDTO> searchEvent(String query, LocalDate startDate, LocalDate endDate, Pageable pageable);
 }
