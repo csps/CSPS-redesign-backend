@@ -19,4 +19,10 @@ public interface StudentMapper {
     @Mapping(source = "userRequestDTO", target = "userAccount")
     Student toEntity(StudentRequestDTO studentRequestDTO);
 
+
+    @Mapping(source = "studentId", target = "studentId")
+    @Mapping(source = "yearLevel", target = "yearLevel")
+    @Mapping(source = "userAccount", target = "userRequestDTO")
+    StudentRequestDTO toRequestDTO(Student student);
+
 }

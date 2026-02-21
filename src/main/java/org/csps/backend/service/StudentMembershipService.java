@@ -15,7 +15,6 @@ public interface StudentMembershipService {
     Optional<StudentMembershipResponseDTO> getStudentMembershipById(Long membershipId);
     StudentMembershipResponseDTO updateStudentMembership(Long membershipId, StudentMembershipRequestDTO requestDTO);
     StudentMembershipResponseDTO getActiveMembershipByStudentId(String studentId);
-    
     /**
      * Get all student memberships with pagination.
      * Default page size is 7 items per page.
