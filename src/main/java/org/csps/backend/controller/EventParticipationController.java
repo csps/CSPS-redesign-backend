@@ -10,13 +10,13 @@ import org.csps.backend.service.EventParticipantService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import lombok.RequiredArgsConstructor;
 
@@ -59,6 +59,16 @@ public class EventParticipationController {
         return GlobalResponseBuilder.buildResponse(message, events, HttpStatus.OK);
     }
 
+    @GetMapping("/{eventId}/is-joined")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<GlobalResponseBuilder<Boolean>> isStudentJoinedEvent(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal String studentId) {
+        boolean isJoined = eventParticipantService.isStudentJoinedEvent(studentId, eventId);
+        String message = "Checked if student has joined the event";
+        return GlobalResponseBuilder.buildResponse(message, isJoined, HttpStatus.OK);
+    }   
+    
     /* admin: get all participants for an event */
     @GetMapping("/{eventId}/participants")
     @PreAuthorize("hasRole('ADMIN_EXECUTIVE')")

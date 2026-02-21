@@ -21,6 +21,7 @@ public interface EventParticipantService {
     /* check if student is already joined to event */
     boolean isStudentJoinedEvent(String studentId, Long eventId);
     
+    
     /* admin removes a participant from event */
     void removeParticipant(Long participantId);
     

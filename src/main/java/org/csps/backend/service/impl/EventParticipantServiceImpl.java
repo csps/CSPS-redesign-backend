@@ -9,10 +9,12 @@ import org.csps.backend.domain.entities.EventParticipant;
 import org.csps.backend.domain.entities.Student;
 import org.csps.backend.domain.enums.ParticipationStatus;
 import org.csps.backend.exception.EventNotFoundException;
+import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.exception.ParticipantAlreadyExistsException;
 import org.csps.backend.exception.ParticipantNotFoundException;
 import org.csps.backend.exception.StudentNotFoundException;
 import org.csps.backend.mapper.EventParticipantMapper;
+import org.csps.backend.repository.AttendanceRecordRepository;
 import org.csps.backend.repository.EventParticipantRepository;
 import org.csps.backend.repository.EventRepository;
 import org.csps.backend.repository.StudentRepository;
@@ -30,6 +32,7 @@ public class EventParticipantServiceImpl implements EventParticipantService {
     private final EventRepository eventRepository;
     private final StudentRepository studentRepository;
     private final EventParticipantMapper eventParticipantMapper;
+    private final AttendanceRecordRepository attendanceRecordRepository;
 
     @Override
     @Transactional
@@ -65,6 +68,12 @@ public class EventParticipantServiceImpl implements EventParticipantService {
         /* find participant record */
         EventParticipant participant = eventParticipantRepository.findByEventEventIdAndStudent_StudentId(eventId, studentId)
             .orElseThrow(() -> new ParticipantNotFoundException("Student is not a participant of this event"));
+
+        /* check if student has already attended any session; if yes, prevent from leaving */
+        var attendanceRecords = attendanceRecordRepository.findByStudentAndEvent(studentId, eventId);
+        if (!attendanceRecords.isEmpty()) {
+            throw new InvalidRequestException("Cannot leave event after attending a session");
+        }
 
         /* delete participant record */
         eventParticipantRepository.delete(participant);
