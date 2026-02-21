@@ -16,6 +16,8 @@ public interface StudentService {
    StudentResponseDTO getStudentProfile(String studentId);
    Optional<Student> findByAccountId(Long accountId);
    Optional<StudentResponseDTO> findById(String id);
+
+   String getCurrentStudentId();
    
    /* complete incomplete student profile with full user information */
    StudentResponseDTO completeStudentProfile(String studentId, UserRequestDTO userRequestDTO);

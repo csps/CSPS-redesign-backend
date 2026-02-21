@@ -34,6 +34,8 @@ public class StudentMembershipServiceImpl implements StudentMembershipService {
     private final StudentMembershipRepository studentMembershipRepository;
     private final StudentRepository studentRepository;
 
+    private static final int CURRENT_SEMESTER = 2;
+
     /**
      * Creates a new student membership.
      *
@@ -45,8 +47,15 @@ public class StudentMembershipServiceImpl implements StudentMembershipService {
     public StudentMembershipResponseDTO createStudentMembership(@Valid StudentMembershipRequestDTO requestDTO) {
         // Validate student exists
         String studentId = requestDTO.getStudentId();
+
+        boolean activeFlag = false;
+
+     
+
         Student student = studentRepository.findByStudentId(studentId)
                 .orElseThrow(() -> new StudentNotFoundException("Student not found with ID: " + studentId));
+
+
 
         // Validate academic year and semester
         if (requestDTO.getAcademicYear() == null) {
@@ -56,9 +65,8 @@ public class StudentMembershipServiceImpl implements StudentMembershipService {
             throw new InvalidRequestException("Semester cannot be null");
         }
 
-        // Validate academic year matches student's year level
-        if (!requestDTO.getAcademicYear().equals(student.getYearLevel())) {
-            throw new InvalidRequestException("Requested academic year " + requestDTO.getAcademicYear() + " does not match student's year level " + student.getYearLevel());
+        if (student.getYearLevel() == requestDTO.getAcademicYear() && requestDTO.getSemester() == CURRENT_SEMESTER) {
+            activeFlag = true;
         }
 
         // Check if membership already exists for this academic year and semester
@@ -72,10 +80,12 @@ public class StudentMembershipServiceImpl implements StudentMembershipService {
         StudentMembership membership = studentMembershipMapper.toEntity(requestDTO);
         membership.setStudent(student);
 
+
+
         // Set academic year and semester from request
         membership.setAcademicYear(requestDTO.getAcademicYear());
         membership.setSemester(requestDTO.getSemester());
-        membership.setActive(requestDTO.isActive());
+        membership.setActive(activeFlag);
 
         // Save
         StudentMembership saved = studentMembershipRepository.save(membership);
