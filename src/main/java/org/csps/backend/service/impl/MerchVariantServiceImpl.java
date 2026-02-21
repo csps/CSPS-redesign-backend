@@ -64,7 +64,7 @@ public class MerchVariantServiceImpl implements MerchVariantService {
                     throw new MerchVariantAlreadyExisted("Variant with color " + dto.getColor() + " already exists");
                 }
             }
-            case PIN, STICKER, KEYCHAIN -> {
+            case PIN, STICKER, KEYCHAIN, MEMBERSHIP -> {
                 // For non-clothing, design is required and must be unique
                 if (dto.getDesign() == null || dto.getDesign().trim().isEmpty()) {
                     throw new InvalidRequestException("design is required for this merch type");

@@ -61,6 +61,7 @@ public class MerchController {
             variants, 
             new TypeReference<List<MerchVariantRequestDTO>>() {}
         );
+        
 
 
         // Assign variant images to each variant
@@ -69,7 +70,7 @@ public class MerchController {
                 variantsList.get(i).setVariantImage(variantImages[i]);
             }
         }
-
+      
 
         // Build MerchRequestDTO
         MerchRequestDTO request = MerchRequestDTO.builder()
