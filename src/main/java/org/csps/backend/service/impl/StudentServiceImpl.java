@@ -22,6 +22,7 @@ import org.csps.backend.service.StudentService;
 import org.csps.backend.service.UserService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
@@ -120,6 +121,21 @@ public class StudentServiceImpl implements StudentService {
                     return dto;
                 });
    }
+
+   /*
+    * Get current authenticated student ID from SecurityContext
+    */
+   
+   @Override
+   public String getCurrentStudentId()
+   {
+        String principal = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
+    
+
+        return principal;
+   }
+
+
    
    @Override
    @Transactional

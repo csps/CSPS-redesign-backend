@@ -16,10 +16,13 @@ import org.csps.backend.domain.entities.Order;
 import org.csps.backend.domain.entities.OrderItem;
 import org.csps.backend.domain.enums.OrderStatus;
 import org.csps.backend.domain.enums.SalesPeriod;
+import org.csps.backend.domain.dtos.request.StudentMembershipRequestDTO;
+import org.csps.backend.domain.enums.MerchType;
 import org.csps.backend.repository.MerchVariantItemRepository;
 import org.csps.backend.repository.OrderItemRepository;
 import org.csps.backend.repository.OrderRepository;
 import org.csps.backend.service.SalesService;
+import org.csps.backend.service.StudentMembershipService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -34,8 +37,8 @@ public class SalesServiceImpl implements SalesService {
 
     private final OrderRepository orderRepository;
     private final MerchVariantItemRepository merchVariantItemRepository;
-
     private final OrderItemRepository orderItemRepository;
+    private final StudentMembershipService studentMembershipService;
 
     // Deployment date - set to today (February 8, 2026) as dummy data
     private static final LocalDate DEPLOYMENT_DATE = LocalDate.of(2026, 2, 8);
@@ -57,8 +60,6 @@ public class SalesServiceImpl implements SalesService {
                 .chartData(chartData)
                 .build();
     }
-
-    
 
     @Override
     public Page<TransactionDTO> getTransactions(Pageable pageable, String search, String status, Integer year) {
@@ -110,6 +111,40 @@ public class SalesServiceImpl implements SalesService {
     public TransactionDTO approveTransaction(Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        // Check for MEMBERSHIP items and create membership if found
+        if (order.getOrderItems() != null) {
+            boolean hasMembership = false;
+            for (OrderItem item : order.getOrderItems()) {
+                if (item.getMerchVariantItem() != null 
+                        && item.getMerchVariantItem().getMerchVariant() != null
+                        && item.getMerchVariantItem().getMerchVariant().getMerch() != null
+                        && item.getMerchVariantItem().getMerchVariant().getMerch().getMerchType() == MerchType.MEMBERSHIP) {
+                    hasMembership = true;
+                    break;
+                }
+            }
+
+            if (hasMembership) {
+                try {
+                    StudentMembershipRequestDTO membershipRequest = StudentMembershipRequestDTO.builder()
+                            .studentId(order.getStudent().getStudentId())
+                            .academicYear(order.getStudent().getYearLevel())
+                            .semester((byte) 2) // Default semester
+                            .active(true)
+                            .build();
+                    
+                    studentMembershipService.createStudentMembership(membershipRequest);
+                } catch (Exception e) {
+                    // Log error but proceed with order approval? Or fail?
+                    // For now, let's log and proceed, or maybe rethrow if strict
+                    System.err.println("Failed to create membership for order " + id + ": " + e.getMessage());
+                    // Decide: Should we fail the transaction if membership fails? 
+                    // Probably yes, to ensure consistency.
+                    throw new RuntimeException("Failed to create membership: " + e.getMessage(), e);
+                }
+            }
+        }
 
         order.setOrderStatus(OrderStatus.CLAIMED);
         Order savedOrder = orderRepository.save(order);

@@ -11,19 +11,23 @@ import org.csps.backend.domain.dtos.response.MerchDetailedResponseDTO;
 import org.csps.backend.domain.dtos.response.MerchSummaryResponseDTO;
 import org.csps.backend.domain.entities.Merch;
 import org.csps.backend.domain.entities.MerchVariant;
-import org.csps.backend.domain.enums.ClothingSizing;
 import org.csps.backend.domain.enums.MerchType;
 import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.exception.MerchAlreadyExistException;
 import org.csps.backend.exception.MerchNotFoundException;
-import org.csps.backend.exception.MerchVariantNotFoundException;
 import org.csps.backend.mapper.MerchMapper;
 import org.csps.backend.repository.MerchRepository;
-import org.csps.backend.repository.MerchVariantRepository;
 import org.csps.backend.service.MerchService;
 import org.csps.backend.service.MerchVariantItemService;
 import org.csps.backend.service.MerchVariantService;
 import org.csps.backend.service.S3Service;
+
+import java.util.stream.Collectors;
+
+import org.csps.backend.repository.CartItemRepository;
+import org.csps.backend.repository.StudentMembershipRepository;
+
+import org.csps.backend.service.StudentService;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
@@ -40,11 +44,15 @@ import lombok.RequiredArgsConstructor;
 public class MerchServiceImpl implements MerchService {
 
     private final MerchRepository merchRepository;
-    private final MerchVariantRepository merchVariantRepository;
     private final MerchMapper merchMapper;
     private final S3Service s3Service;
     private final MerchVariantService merchVariantService;
     private final MerchVariantItemService merchVariantItemService;
+    private final StudentMembershipRepository studentMembershipRepository;
+    private final CartItemRepository cartItemRepository;
+
+    private final StudentService studentService;
+
 
     @Override
     @Transactional
@@ -85,12 +93,14 @@ public class MerchServiceImpl implements MerchService {
 
         Merch savedMerch = merchRepository.save(merch);
 
+
         // Upload merch image if provided
         if (request.getMerchImage() != null && !request.getMerchImage().isEmpty()) {
             String s3ImageKey = s3Service.uploadFile(request.getMerchImage(), savedMerch.getMerchId(), "merch");
             savedMerch.setS3ImageKey(s3ImageKey);
             savedMerch = merchRepository.save(savedMerch);
         }
+    
 
         // PHASE 2 & 3: Process variants and items
         List<MerchVariantRequestDTO> variants = request.getMerchVariantRequestDto();
@@ -145,14 +155,38 @@ public class MerchServiceImpl implements MerchService {
 
     @Override
     public List<MerchDetailedResponseDTO> getAllMerch() {
-        return merchRepository.findAll().stream()
+        List<MerchDetailedResponseDTO> allMerch = merchRepository.findAll().stream()
                 .map(merchMapper::toDetailedResponseDTO)
-                .toList();
+                .collect(Collectors.toList());
+
+        String studentId = studentService.getCurrentStudentId();
+        if (studentId != null) {
+             boolean isActiveMember = studentMembershipRepository.findByStudentStudentIdAndActive(studentId, true).isPresent();
+             boolean hasMembershipInCart = cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP);
+
+             if (isActiveMember || hasMembershipInCart) {
+                 allMerch.removeIf(m -> m.getMerchType() == MerchType.MEMBERSHIP);
+             }
+        }
+        return allMerch;
     }
 
     @Override
     public List<MerchSummaryResponseDTO> getAllMerchSummaries() {
-        return merchRepository.findAllSummaries();
+        List<MerchSummaryResponseDTO> summaries = merchRepository.findAllSummaries();
+        String studentId = studentService.getCurrentStudentId();
+        
+        if (studentId != null) {
+            boolean isActiveMember = studentMembershipRepository.findByStudentStudentIdAndActive(studentId, true).isPresent();
+            boolean hasMembershipInCart = cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP);
+
+            if (isActiveMember || hasMembershipInCart) {
+                 return summaries.stream()
+                     .filter(m -> m.getMerchType() != MerchType.MEMBERSHIP)
+                     .toList();
+            }
+        }
+        return summaries;
     }
 
     @Override
@@ -166,6 +200,16 @@ public class MerchServiceImpl implements MerchService {
     public List<MerchSummaryResponseDTO> getMerchByType(MerchType merchType) {
         if (merchType == null) {
             throw new InvalidRequestException("Merch type is required");
+        }
+
+        String studentId = studentService.getCurrentStudentId();
+        if (studentId != null && merchType == MerchType.MEMBERSHIP) {
+            boolean isActiveMember = studentMembershipRepository.findByStudentStudentIdAndActive(studentId, true).isPresent();
+            boolean hasMembershipInCart = cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP);
+            
+            if (isActiveMember || hasMembershipInCart) {
+                return List.of();
+            }
         }
 
         return merchRepository.findAllSummaryByType(merchType);

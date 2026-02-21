@@ -17,6 +17,7 @@ import org.csps.backend.mapper.StudentMapper;
 import org.csps.backend.repository.StudentRepository;
 import org.csps.backend.repository.UserAccountRepository;
 import org.csps.backend.repository.UserProfileRepository;
+import org.csps.backend.service.CartService;
 import org.csps.backend.service.StudentMigrationService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,6 +37,11 @@ public class StudentMigrationServiceImpl implements StudentMigrationService {
     private final UserProfileRepository userProfileRepository;
     private final StudentMapper studentMapper;
     private final PasswordEncoder passwordEncoder;
+
+    private final CartService cartService;
+
+     /* These formats can be configured in application.properties */
+
 
     @Value("${csps.userNameformat}")
     private String userNameFormat;
@@ -140,8 +146,11 @@ public class StudentMigrationServiceImpl implements StudentMigrationService {
                 .build();
 
         student = studentRepository.save(student);
-        log.info("Student migrated: {} - {}, {}", dto.getStudentId(), dto.getFirstName(), dto.getLastName());
 
+        cartService.createCart(student.getStudentId());
+        log.info("Student migrated: {} - {}, {}", dto.getStudentId(), dto.getFirstName(), dto.getLastName());
+        
+        
         return studentMapper.toResponseDTO(student);
     }
 }
