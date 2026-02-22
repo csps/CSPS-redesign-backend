@@ -11,7 +11,7 @@ public interface OrderItemMapper {
 
     @Mapping(source = "order.orderId", target = "orderId")
     @Mapping(source = "order.student.studentId", target = "studentId")
-    @Mapping(target = "studentName", expression = "java(orderItem.getOrder().getStudent().getUserAccount().getUserProfile().getFirstName() + \" \" + orderItem.getOrder().getStudent().getUserAccount().getUserProfile().getLastName())")
+    @Mapping(target = "studentName", expression = "java(getStudentFullName(orderItem))")
     @Mapping(source = "merchVariantItem.merchVariant.merch.merchName", target = "merchName")
     @Mapping(source = "merchVariantItem.merchVariant.merch.merchType", target = "merchType")
     @Mapping(source = "merchVariantItem.merchVariant.color", target = "color")
@@ -28,4 +28,19 @@ public interface OrderItemMapper {
     @Mapping(source="merchVariantItemId", target="merchVariantItem.merchVariantItemId")
     @Mapping(source="orderId", target="order.orderId")
     OrderItem toEntity(OrderItemRequestDTO orderItemRequestDTO);
+    
+    /* safely extract student full name from nested relationships with null-checks */
+    default String getStudentFullName(OrderItem orderItem) {
+        if (orderItem == null || orderItem.getOrder() == null || orderItem.getOrder().getStudent() == null) {
+            return "";
+        }
+        var student = orderItem.getOrder().getStudent();
+        var userAccount = student.getUserAccount();
+        if (userAccount == null || userAccount.getUserProfile() == null) {
+            return "";
+        }
+        var profile = userAccount.getUserProfile();
+        return (profile.getFirstName() != null ? profile.getFirstName() : "") + " " +
+               (profile.getLastName() != null ? profile.getLastName() : "");
+    }
 }

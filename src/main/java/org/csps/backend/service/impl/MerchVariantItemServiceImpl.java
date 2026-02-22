@@ -99,8 +99,14 @@ public class MerchVariantItemServiceImpl implements MerchVariantItemService {
         // Get the merch type from the variant's parent merch
         Merch merch = variant.getMerch();
         MerchType merchType = merch.getMerchType();
+        
+        // batch fetch existing items for this variant to avoid N queries in loop
+        List<MerchVariantItem> existingItems = itemRepository.findByMerchVariantMerchVariantId(merchVariantId);
+        java.util.Set<ClothingSizing> existingSizesSet = existingItems.stream()
+                .map(MerchVariantItem::getSize)
+                .collect(java.util.stream.Collectors.toSet());
 
-        List<MerchVariantItemResponseDTO> results = new ArrayList<>();
+        List<MerchVariantItem> itemsToSave = new ArrayList<>();
 
         for (MerchVariantItemRequestDTO dto : dtos) {
             // Validate each item
@@ -124,8 +130,8 @@ public class MerchVariantItemServiceImpl implements MerchVariantItemService {
                     throw new InvalidRequestException("Design should not be provided for clothing merchandise items");
                 }
                 
-                boolean exists = itemRepository.existsByMerchVariantAndSize(variant, dto.getSize());
-                if (exists) {
+                // check against in-memory set instead of database query
+                if (existingSizesSet.contains(dto.getSize())) {
                     throw new InvalidRequestException("Item with size " + dto.getSize() + " already exists for this variant");
                 }
             } else {
@@ -139,7 +145,7 @@ public class MerchVariantItemServiceImpl implements MerchVariantItemService {
                 }
             }
             
-            // Create and save the item
+            // Create the item (don't save yet)
             MerchVariantItem item = MerchVariantItem.builder()
                     .merchVariant(variant)
                     .size(dto.getSize())
@@ -147,11 +153,15 @@ public class MerchVariantItemServiceImpl implements MerchVariantItemService {
                     .stockQuantity(dto.getStockQuantity())
                     .build();
 
-            MerchVariantItem saved = itemRepository.save(item);
-            results.add(itemMapper.toResponseDto(saved));
+            itemsToSave.add(item);
         }
 
-        return results;
+        // Batch save all items in a single query
+        List<MerchVariantItem> saved = itemRepository.saveAll(itemsToSave);
+        
+        return saved.stream()
+                .map(itemMapper::toResponseDto)
+                .toList();
     }
 
     @Override

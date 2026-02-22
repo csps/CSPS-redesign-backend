@@ -1,21 +1,31 @@
 package org.csps.backend.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.csps.backend.domain.dtos.response.MerchSummaryResponseDTO;
 import org.csps.backend.domain.entities.Merch;
 import org.csps.backend.domain.enums.ClothingSizing;
 import org.csps.backend.domain.enums.MerchType;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Repository;
 
-@Service
-@EnableJpaRepositories
+@Repository
 public interface MerchRepository extends JpaRepository<Merch, Long>{
     boolean existsByMerchName(String merchName);
+    
+    @EntityGraph(value = "Merch.withVariantsAndItems", type = EntityGraph.EntityGraphType.FETCH)
+    @Override
+    List<Merch> findAll();
+    
+    @EntityGraph(value = "Merch.withVariantsAndItems", type = EntityGraph.EntityGraphType.FETCH)
+    @Override
+    Optional<Merch> findById(Long id);
+    
+    @EntityGraph(value = "Merch.withVariantsAndItems", type = EntityGraph.EntityGraphType.FETCH)
     List<Merch> findByMerchType(org.csps.backend.domain.enums.MerchType merchType);
 
     @Query("SELECT DISTINCT mvi.size FROM MerchVariantItem mvi WHERE mvi.merchVariant.merch.merchId = :merchId AND mvi.stockQuantity > 0")

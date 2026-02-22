@@ -199,16 +199,12 @@ public class AdminServiceImpl implements AdminService {
         UserAccount adminUserAccount = UserAccount.builder()
                 .userProfile(userProfile)  // Same profile, different account
                 .role(UserRole.ADMIN)
-                .username(String.format("%s-%s%s%s%s",
+                .username(String.format("%s%s",
                         adminUserFormat,
-                        position,
-                        userProfile.getFirstName(),
-                        userProfile.getLastName(),
-                        userProfile.getUserId()))
-                .password(passwordEncoder.encode(String.format("%s-%s%s",
+                        student.getStudentId()))
+                .password(passwordEncoder.encode(String.format("%s%s",
                         adminPasswordFormat,
-                        userProfile.getLastName(),
-                        userProfile.getUserId())))
+                        student.getStudentId())))
                 .build();
 
         adminUserAccount = userAccountRepository.save(adminUserAccount);

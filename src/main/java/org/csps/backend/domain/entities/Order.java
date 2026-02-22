@@ -17,6 +17,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.NamedAttributeNode;
+import jakarta.persistence.NamedEntityGraph;
+import jakarta.persistence.NamedSubgraph;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -30,6 +33,46 @@ import lombok.NoArgsConstructor;
 {
     @Index(name = "idx_student_id", columnList = "student_id")
 }
+)
+@NamedEntityGraph(
+    name = "Order.withItemsAndDetails",
+    attributeNodes = {
+        @NamedAttributeNode(
+            value = "orderItems",
+            subgraph = "orderitems-with-details"
+        ),
+        @NamedAttributeNode(value = "student", subgraph = "student-with-profile")
+    },
+    subgraphs = {
+        @NamedSubgraph(
+            name = "orderitems-with-details",
+            attributeNodes = @NamedAttributeNode(
+                value = "merchVariantItem",
+                subgraph = "merchvariantitem-with-merch"
+            )
+        ),
+        @NamedSubgraph(
+            name = "merchvariantitem-with-merch",
+            attributeNodes = {
+                @NamedAttributeNode(value = "merchVariant", subgraph = "merchvariant-with-merch")
+            }
+        ),
+        @NamedSubgraph(
+            name = "merchvariant-with-merch",
+            attributeNodes = @NamedAttributeNode("merch")
+        ),
+        @NamedSubgraph(
+            name = "student-with-profile",
+            attributeNodes = @NamedAttributeNode(
+                value = "userAccount",
+                subgraph = "useraccount-with-profile"
+            )
+        ),
+        @NamedSubgraph(
+            name = "useraccount-with-profile",
+            attributeNodes = @NamedAttributeNode("userProfile")
+        )
+    }
 )
 @AllArgsConstructor
 @NoArgsConstructor

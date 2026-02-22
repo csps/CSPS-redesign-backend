@@ -28,6 +28,8 @@ import org.csps.backend.repository.CartItemRepository;
 import org.csps.backend.repository.StudentMembershipRepository;
 
 import org.csps.backend.service.StudentService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
@@ -56,6 +58,7 @@ public class MerchServiceImpl implements MerchService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {"allMerchs", "merchSummaries"}, allEntries = true)
     public MerchDetailedResponseDTO createMerch(MerchRequestDTO request) throws IOException {
         if (request == null) {
             throw new InvalidRequestException("Request is required");
@@ -93,7 +96,6 @@ public class MerchServiceImpl implements MerchService {
 
         Merch savedMerch = merchRepository.save(merch);
 
-
         // Upload merch image if provided
         if (request.getMerchImage() != null && !request.getMerchImage().isEmpty()) {
             String s3ImageKey = s3Service.uploadFile(request.getMerchImage(), savedMerch.getMerchId(), "merch");
@@ -101,8 +103,7 @@ public class MerchServiceImpl implements MerchService {
             savedMerch = merchRepository.save(savedMerch);
         }
     
-
-        // PHASE 2 & 3: Process variants and items
+        // PHASE 2 & 3: Process variants and items in batch
         List<MerchVariantRequestDTO> variants = request.getMerchVariantRequestDto();
         if (variants == null || variants.isEmpty()) {
             throw new InvalidRequestException("At least one variant is required");
@@ -122,28 +123,14 @@ public class MerchServiceImpl implements MerchService {
                 }
             }
 
-            // PHASE 2: Create MerchVariant with color and design
-            MerchVariantRequestDTO variantReqDto = MerchVariantRequestDTO.builder()
-                    .color(variantDto.getColor())
-                    .design(variantDto.getDesign())
-                    .variantImage(variantDto.getVariantImage())
-                    .build();
-
-            var variantResponse = merchVariantService.addVariantToMerch(savedMerch.getMerchId(), variantReqDto);
-
-            // Upload variant image if provided
-            if (variantDto.getVariantImage() != null && !variantDto.getVariantImage().isEmpty()) {
-                merchVariantService.uploadVariantImage(variantResponse.getMerchVariantId(), variantDto.getVariantImage());
-            }
-
-            // PHASE 3: Create MerchVariantItem(s) for this variant
+            // Validate items
             List<MerchVariantItemRequestDTO> items = variantDto.getVariantItems();
             if (items == null || items.isEmpty()) {
                 throw new InvalidRequestException("At least one item (size/price/stock) is required for each variant");
             }
 
-            // Add multiple items to the variant in batch
-            merchVariantItemService.addMultipleItemsToVariant(variantResponse.getMerchVariantId(), items);
+            // Create variant with items passed directly (all saved in batch within service)
+            merchVariantService.addVariantToMerch(savedMerch.getMerchId(), variantDto);
         }
 
         // Reload merch with all variants and items, then build complete response
@@ -154,6 +141,7 @@ public class MerchServiceImpl implements MerchService {
     }
 
     @Override
+    @Cacheable(cacheNames = "allMerchs")
     public List<MerchDetailedResponseDTO> getAllMerch() {
         List<MerchDetailedResponseDTO> allMerch = merchRepository.findAll().stream()
                 .map(merchMapper::toDetailedResponseDTO)
@@ -161,35 +149,39 @@ public class MerchServiceImpl implements MerchService {
 
         String studentId = studentService.getCurrentStudentId();
         if (studentId != null) {
-             boolean isActiveMember = studentMembershipRepository.findByStudentStudentIdAndActive(studentId, true).isPresent();
-             boolean hasMembershipInCart = cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP);
+            // combine membership checks into single boolean
+            boolean shouldExcludeMembership = studentMembershipRepository.hasActiveMembership(studentId)
+                    || cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP);
 
-             if (isActiveMember || hasMembershipInCart) {
-                 allMerch.removeIf(m -> m.getMerchType() == MerchType.MEMBERSHIP);
-             }
+            if (shouldExcludeMembership) {
+                allMerch.removeIf(m -> m.getMerchType() == MerchType.MEMBERSHIP);
+            }
         }
         return allMerch;
     }
 
     @Override
+    @Cacheable(cacheNames = "merchSummaries")
     public List<MerchSummaryResponseDTO> getAllMerchSummaries() {
         List<MerchSummaryResponseDTO> summaries = merchRepository.findAllSummaries();
         String studentId = studentService.getCurrentStudentId();
         
         if (studentId != null) {
-            boolean isActiveMember = studentMembershipRepository.findByStudentStudentIdAndActive(studentId, true).isPresent();
-            boolean hasMembershipInCart = cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP);
+            // combine both checks into single boolean: if student has active membership OR membership in cart
+            boolean shouldExcludeMembership = studentMembershipRepository.hasActiveMembership(studentId) 
+                    || cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP);
 
-            if (isActiveMember || hasMembershipInCart) {
-                 return summaries.stream()
-                     .filter(m -> m.getMerchType() != MerchType.MEMBERSHIP)
-                     .toList();
+            if (shouldExcludeMembership) {
+                return summaries.stream()
+                    .filter(m -> m.getMerchType() != MerchType.MEMBERSHIP)
+                    .toList();
             }
         }
         return summaries;
     }
 
     @Override
+    @Cacheable(cacheNames = "merch", key = "#id")
     public MerchDetailedResponseDTO getMerchById(Long id) {
         Merch merch = merchRepository.findById(id)
                 .orElseThrow(() -> new MerchNotFoundException("Merch not found with id: " + id));
@@ -197,6 +189,7 @@ public class MerchServiceImpl implements MerchService {
     }
 
     @Override
+    @Cacheable(cacheNames = "merch", key = "#merchType.toString()")
     public List<MerchSummaryResponseDTO> getMerchByType(MerchType merchType) {
         if (merchType == null) {
             throw new InvalidRequestException("Merch type is required");
@@ -204,10 +197,11 @@ public class MerchServiceImpl implements MerchService {
 
         String studentId = studentService.getCurrentStudentId();
         if (studentId != null && merchType == MerchType.MEMBERSHIP) {
-            boolean isActiveMember = studentMembershipRepository.findByStudentStudentIdAndActive(studentId, true).isPresent();
-            boolean hasMembershipInCart = cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP);
+            // combine membership checks into single boolean
+            boolean shouldExcludeMembership = studentMembershipRepository.hasActiveMembership(studentId)
+                    || cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP);
             
-            if (isActiveMember || hasMembershipInCart) {
+            if (shouldExcludeMembership) {
                 return List.of();
             }
         }
@@ -217,6 +211,7 @@ public class MerchServiceImpl implements MerchService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {"allMerchs", "merchSummaries", "merch"}, allEntries = true)
     public MerchDetailedResponseDTO putMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) throws IOException {
         // Find merch by ID
         Merch foundMerch = merchRepository.findById(merchId)
@@ -246,6 +241,7 @@ public class MerchServiceImpl implements MerchService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {"allMerchs", "merchSummaries", "merch"}, allEntries = true)
     public MerchDetailedResponseDTO patchMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) throws IOException {
         // Find merch by ID
         Merch foundMerch = merchRepository.findById(merchId)
@@ -272,6 +268,7 @@ public class MerchServiceImpl implements MerchService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {"allMerchs", "merchSummaries", "merch"}, allEntries = true)
     public void deleteMerch(Long merchId) {
         // Find merch by ID
         Merch merch = merchRepository.findById(merchId)

@@ -17,6 +17,8 @@ import org.csps.backend.mapper.EventMapper;
 import org.csps.backend.repository.EventRepository;
 import org.csps.backend.service.EventService;
 import org.csps.backend.service.S3Service;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {"allEvents", "event"}, allEntries = true)
     public EventResponseDTO postEvent(EventPostRequestDTO eventPostRequestDTO, MultipartFile eventImage) throws Exception {
         // convert the request to entity
         Event event = eventMapper.toEntity(eventPostRequestDTO);
@@ -103,6 +106,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Cacheable(cacheNames = "allEvents")
     public List<EventResponseDTO> getAllEvents() {
 
         // convert all the event entities to event response dto
@@ -115,6 +119,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Cacheable(cacheNames = "event", key = "#eventId")
     public EventResponseDTO getEventById(Long eventId) {
 
         // find the event by id
@@ -128,6 +133,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {"allEvents", "event"}, allEntries = true)
     public EventResponseDTO deleteEvent(Long eventId) {
 
         // find the event by id
@@ -144,6 +150,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {"allEvents", "event"}, allEntries = true)
     public EventResponseDTO putEvent(Long eventId, EventUpdateRequestDTO eventUpdateRequestDTO, MultipartFile eventImage) throws Exception {
     
         // find the event by id
@@ -224,6 +231,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {"allEvents", "event"}, allEntries = true)
     public EventResponseDTO patchEvent(Long eventId, EventUpdateRequestDTO eventUpdateRequestDTO, MultipartFile eventImage) throws Exception {
     
         // find the event by id
@@ -309,6 +317,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Cacheable(cacheNames = "event", key = "#eventDate.toString()")
     public List<EventResponseDTO> getEventByDate(LocalDate eventDate) {
         List<Event> events = eventRepository.findByEventDate(eventDate);
     
@@ -336,6 +345,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Cacheable(cacheNames = "allEvents")
     public List<EventResponseDTO> getUpcomingEvents() {
         LocalDate today = LocalDate.now();
         List<Event> upcomingEvents = eventRepository.findUpcomingEvents(today);
@@ -346,6 +356,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Cacheable(cacheNames = "event", key = "#year + '-' + #month")
     public List<EventResponseDTO> getEventsByMonth(int year, int month) {
         if (month < 1 || month > 12)
             throw new InvalidRequestException("Invalid month. Month must be between 1 and 12");
@@ -358,6 +369,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Cacheable(cacheNames = "allEvents")
     public List<EventResponseDTO> getPastEvents() {
         LocalDate today = LocalDate.now();
         List<Event> pastEvents = eventRepository.findPastEvents(today);

@@ -33,7 +33,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(indexes = @Index(
-    name = "idx_event_date", columnList = "event_date")
+    name = "idx_event_date", columnList = "event_date, event_status")
 )
 public class Event {
     @Id

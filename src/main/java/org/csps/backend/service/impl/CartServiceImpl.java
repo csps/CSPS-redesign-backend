@@ -25,7 +25,7 @@ public class CartServiceImpl implements CartService {
             throw new InvalidRequestException("Student ID is required");
         }
         
-        Cart cart = cartRepository.findById(studentId)
+        Cart cart = cartRepository.findByIdWithItems(studentId)
                 .orElseThrow(() -> new CartNotFoundException("Cart not found for student: " + studentId));
 
         return cartMapper.toResponseDTO(cart);
@@ -55,7 +55,7 @@ public class CartServiceImpl implements CartService {
             throw new InvalidRequestException("Student ID is required");
         }
         
-        Cart cart = cartRepository.findById(studentId)
+        Cart cart = cartRepository.findByIdWithItems(studentId)
                 .orElseThrow(() -> new CartNotFoundException("Cart not found"));
 
         return cart.getItems().stream()
@@ -69,7 +69,7 @@ public class CartServiceImpl implements CartService {
             throw new InvalidRequestException("Student ID is required");
         }
         
-        Cart cart = cartRepository.findById(studentId)
+        Cart cart = cartRepository.findByIdWithItems(studentId)
                 .orElseThrow(() -> new CartNotFoundException("Cart not found"));
 
         return cart.getItems().stream()
@@ -84,7 +84,7 @@ public class CartServiceImpl implements CartService {
             throw new InvalidRequestException("Student ID is required");
         }
         
-        Cart cart = cartRepository.findById(studentId)
+        Cart cart = cartRepository.findByIdWithItems(studentId)
                 .orElseThrow(() -> new CartNotFoundException("Cart not found"));
 
         cart.getItems().clear();

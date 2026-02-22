@@ -17,6 +17,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.NamedAttributeNode;
+import jakarta.persistence.NamedEntityGraph;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -31,6 +33,10 @@ import lombok.NoArgsConstructor;
     indexes = {
         @Index(name = "idx_merch_id", columnList = "merch_id")
     }
+)
+@NamedEntityGraph(
+    name = "MerchVariant.withItems",
+    attributeNodes = @NamedAttributeNode("merchVariantItems")
 )
 @Data
 @Builder
