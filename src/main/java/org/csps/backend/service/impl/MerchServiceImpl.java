@@ -2,6 +2,7 @@
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.csps.backend.domain.dtos.request.MerchRequestDTO;
 import org.csps.backend.domain.dtos.request.MerchUpdateRequestDTO;
@@ -10,9 +11,7 @@ import org.csps.backend.domain.dtos.request.MerchVariantRequestDTO;
 import org.csps.backend.domain.dtos.response.MerchDetailedResponseDTO;
 import org.csps.backend.domain.dtos.response.MerchSummaryResponseDTO;
 import org.csps.backend.domain.entities.Merch;
-import org.csps.backend.domain.entities.MerchVariant;
 import org.csps.backend.domain.enums.MerchType;
-import org.csps.backend.exception.CannotDeleteMerchException;
 import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.exception.MerchAlreadyExistException;
 import org.csps.backend.exception.MerchNotFoundException;
@@ -26,9 +25,6 @@ import org.csps.backend.service.MerchVariantItemService;
 import org.csps.backend.service.MerchVariantService;
 import org.csps.backend.service.S3Service;
 import org.csps.backend.service.StudentService;
-
-import java.util.stream.Collectors;
-
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
