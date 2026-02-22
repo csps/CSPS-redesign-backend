@@ -1,5 +1,7 @@
 package org.csps.backend.service;
 
+import org.csps.backend.domain.dtos.response.OrderItemResponseDTO;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -17,6 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 public class EmailService {
     
     private final JavaMailSender mailSender;
+
+    @Value("${S3_PUBLIC_BASE_URL:https://csps-web.s3.us-east-1.amazonaws.com/}")
+    private String s3PublicBaseUrl;
     
     /**
      * send simple text email asynchronously
@@ -28,13 +33,13 @@ public class EmailService {
             message.setTo(to);
             message.setSubject(subject);
             message.setText(body);
-            message.setFrom("noreply@csps.edu");
+            message.setFrom("roginandv@gmail.com");
             
             mailSender.send(message);
             log.info("email sent successfully to: {}", to);
         } catch (Exception e) {
-            log.error("failed to send email to: {}, error: {}", to, e.getMessage());
-            throw new RuntimeException("failed to send email", e);
+            logMailError(to, "simple text email", e);
+            throw new RuntimeException("failed to send email to " + to, e);
         }
     }
     
@@ -50,14 +55,42 @@ public class EmailService {
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
-            helper.setFrom("noreply@csps.edu");
+            helper.setFrom("roginandv@gmail.com");
             
             mailSender.send(message);
             log.info("html email sent successfully to: {}", to);
         } catch (MessagingException e) {
-            log.error("failed to send html email to: {}, error: {}", to, e.getMessage());
-            throw new RuntimeException("failed to send html email", e);
+            logMailError(to, "html email", e);
+            throw new RuntimeException("failed to send html email to " + to, e);
         }
+    }
+    
+    /**
+     * log mail errors with detailed diagnostics for debugging
+     */
+    private void logMailError(String recipient, String emailType, Exception e) {
+        String rootCause = getRootCauseMessage(e);
+        log.error("failed to send {} to: {}\nRoot cause: {}\nError: {}", 
+            emailType, recipient, rootCause, e.getMessage(), e);
+        
+        // log specific error patterns for diagnostics
+        if (rootCause.toLowerCase().contains("timeout") || 
+            rootCause.toLowerCase().contains("socket")) {
+            log.warn("Network connectivity issue detected. Verify mail server is reachable and timeout settings are sufficient.");
+        } else if (rootCause.toLowerCase().contains("authentication")) {
+            log.warn("SMTP authentication failed. Verify mail credentials in application.properties");
+        }
+    }
+    
+    /**
+     * extract root cause message from exception chain
+     */
+    private String getRootCauseMessage(Throwable e) {
+        Throwable cause = e;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        return cause.getMessage() != null ? cause.getMessage() : e.getMessage();
     }
     
     /**
@@ -86,7 +119,152 @@ public class EmailService {
         String htmlBody = buildPasswordRecoveryEmailTemplate(userName, recoveryLink);
         sendHtmlEmail(to, subject, htmlBody);
     }
+
+    /**
+     * send order confirmation email using pre-mapped order item data (clean architecture).
+     * accepts already-processed DTO with s3ImageKey extracted from entity relationships by mapper.
+     * avoids lazy loading issues and keeps email service focused on email generation only.
+     */
+    @Async("emailTaskExecutor")
+    public void sendOrderConfirmationEmail(String to, OrderItemResponseDTO orderItem, String orderDate,
+                                          String totalPrice, String paymentMethod, String referenceNumber) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
+            helper.setTo(to);
+            helper.setSubject("Thank you for your order!");
+            helper.setFrom("roginandv@gmail.com");
+            
+            String htmlBody = buildOrderConfirmationEmailTemplate(
+                orderItem,
+                orderDate,
+                totalPrice,
+                paymentMethod,
+                referenceNumber
+                
+            );
+            helper.setText(htmlBody, true);
+            
+            mailSender.send(message);
+            log.info("order confirmation email sent successfully to: {}", to);
+        } catch (MessagingException e) {
+            logMailError(to, "order confirmation email", e);
+            throw new RuntimeException("failed to send order confirmation email to " + to, e);
+        }
+    }
     
+    /**
+     * build order confirmation email template with embedded product image
+     */
+    private String buildOrderConfirmationEmailTemplate(OrderItemResponseDTO orderItem, String orderDate,
+                                                       String totalPrice,
+                                                       String paymentMethod, String referenceNumber) {
+        String customerName = orderItem != null ? orderItem.getStudentName() : "";
+        String productName = orderItem != null ? orderItem.getMerchName() : "";
+        String productImageSrc = orderItem != null ? buildImageUrl(orderItem.getS3ImageKey()) : "";
+
+        return """
+            <html>
+            <body style="margin: 0; padding: 0; background-color: #f8f7f3; font-family: 'Segoe UI', Arial, sans-serif;">
+                <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background-color: #f8f7f3; padding: 40px 20px;">
+                    <tr>
+                        <td align="center">
+                            <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
+                                
+                                <!-- Header with logo -->
+                                <tr>
+                                    <td style="padding: 40px 40px 20px; text-align: center; border-bottom: 1px solid #f0f0f0;">
+                                        <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #1a1a2e;">Thank you for your order!</h1>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Content -->
+                                <tr>
+                                    <td style="padding: 40px;">
+                                        
+                                        <!-- Greeting -->
+                                        <p style="margin: 0 0 24px; font-size: 14px; color: #6b7280; line-height: 1.6;">
+                                            Hi <strong style="color: #1a1a2e;">%s</strong>,
+                                        </p>
+                                        
+                                        <p style="margin: 0 0 24px; font-size: 14px; color: #6b7280; line-height: 1.6;">
+                                            We have received your order on <u>%s</u>. To complete your purchase, please visit our office at room 540 during our school hours at your earliest convenience. When you arrive, <strong>kindly present this email as proof of your reservation</strong>. We currently accept cash as payment method. Once the payment is made, <strong>you will receive a receipt via email for your records</strong>. Please ensure that the item matches your selection before leaving.
+                                        </p>
+                                        
+                                        <p style="margin: 0 0 32px; font-size: 14px; color: #6b7280; line-height: 1.6;">
+                                            For any inquiries or if you require assistance, please do not hesitate to reply to this email. We are delighted to have you as a customer and look forward to serving you. Enjoy your new merchandise from CSPS!
+                                        </p>
+                                        
+                                        <!-- Product Section -->
+                                        <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="border-top: 1px solid #f0f0f0; padding-top: 24px; margin-bottom: 32px;">
+                                            <tr>
+                                                <td align="center" style="padding-bottom: 16px;">
+                                                    <img src="%s" style="max-width: 120px; height: auto; border-radius: 4px;" alt="%s" />
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td align="center">
+                                                    <p style="margin: 0 0 8px; font-size: 16px; font-weight: 600; color: #1a1a2e;">%s</p>
+                                                    <p style="margin: 0 0 16px; font-size: 13px; color: #9ca3af;">Standard</p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        
+                                        <!-- Order Details -->
+                                        <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+                                            <tr>
+                                                <td style="font-size: 13px; color: #6b7280; padding: 8px 0;">Payment Method</td>
+                                                <td style="font-size: 13px; color: #1a1a2e; text-align: right; padding: 8px 0;">%s</td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2" style="height: 1px; background-color: #f0f0f0;"></td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 13px; color: #6b7280; padding: 8px 0;">Reference No.</td>
+                                                <td style="font-size: 13px; color: #1a1a2e; text-align: right; padding: 8px 0;">%s</td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2" style="height: 1px; background-color: #f0f0f0;"></td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 14px; font-weight: 600; color: #1a1a2e; padding: 12px 0;">Total</td>
+                                                <td style="font-size: 14px; font-weight: 600; color: #1a1a2e; text-align: right; padding: 12px 0;">%s</td>
+                                            </tr>
+                                        </table>
+                                        
+                                    </td>
+                                </tr>
+                                
+                                <!-- Footer -->
+                                <tr>
+                                    <td style="padding: 24px 40px; background-color: #fafaf8; border-top: 1px solid #f0f0f0; text-align: center;">
+                                        <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                                            © 2026 UC Main Computing Society of the Philippines - Students
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+            """.formatted(customerName, orderDate, productImageSrc, productName, productName, productName,
+                         paymentMethod, referenceNumber, totalPrice);
+    }
+
+    private String buildImageUrl(String s3ImageKey) {
+        if (s3ImageKey == null || s3ImageKey.isBlank()) {
+            return "";
+        }
+        if (s3ImageKey.startsWith("http://") || s3ImageKey.startsWith("https://")) {
+            return s3ImageKey;
+        }
+        String base = s3PublicBaseUrl.endsWith("/") ? s3PublicBaseUrl : s3PublicBaseUrl + "/";
+        return base + s3ImageKey;
+    }
+
     /**
      * build verification email template
      */
