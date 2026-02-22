@@ -78,23 +78,30 @@ public class MerchVariantServiceImpl implements MerchVariantService {
             default -> throw new InvalidRequestException("Unsupported merch type");
         }
 
-        // Create variant
+        // Create variant with placeholder
         MerchVariant variant = MerchVariant.builder()
                 .merch(merch)
                 .color(dto.getColor())
                 .design(dto.getDesign())
-                .s3ImageKey("placeholder") // Placeholder until image is uploaded
+                .s3ImageKey("placeholder")
                 .build();
 
-                
+        // Save variant once (before image upload so we have ID for S3 path)
         MerchVariant saved = merchVariantRepository.save(variant);
-        uploadVariantImage(saved.getMerchVariantId(), dto.getVariantImage());
 
+        // Upload variant image and update S3 key if provided
+        if (dto.getVariantImage() != null && !dto.getVariantImage().isEmpty()) {
+            String s3ImageKey = s3Service.uploadFile(dto.getVariantImage(), saved.getMerchVariantId(), "merchVariant");
+            saved.setS3ImageKey(s3ImageKey);
+            // Update with new S3 key in single save
+            saved = merchVariantRepository.save(saved);
+        }
+
+        // Add items if provided (batch save handled in service)
         if (dto.getVariantItems() != null && !dto.getVariantItems().isEmpty()) {
             merchVariantItemService.addMultipleItemsToVariant(saved.getMerchVariantId(), dto.getVariantItems());
         }
 
-        saved = merchVariantRepository.save(saved); // Save again to update S3 key
         return merchVariantMapper.toResponseDTO(saved);
     }
 
