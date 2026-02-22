@@ -10,6 +10,8 @@ import org.csps.backend.domain.dtos.response.MerchDetailedResponseDTO;
 import org.csps.backend.domain.dtos.response.MerchSummaryResponseDTO;
 import org.csps.backend.domain.enums.ClothingSizing;
 import org.csps.backend.domain.enums.MerchType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Service for managing Merch (base merchandise).
@@ -71,5 +73,17 @@ public interface MerchService {
      * Also deletes associated S3 images.
      */
     void deleteMerch(Long merchId);
+    
+    /**
+     * Get archived merch with pagination and eager loading.
+     * Only fetches the size of the page requested.
+     */
+    Page<MerchDetailedResponseDTO> getArchivedMerch(Pageable pageable);
+    
+    /**
+     * Revert archived merch back to active status.
+     * Makes archived merchandise visible and available for purchase again.
+     */
+    MerchDetailedResponseDTO revertMerch(Long merchId);
     
 }

@@ -111,7 +111,6 @@ public class AuthController {
 
         Long userId = (Long) authentication.getCredentials();  // Cast to Long
 
-        System.out.println("Authenticated userId: " + userId); // Debugging statement
         userService.changePassword(userId, requestDTO);
         
         return GlobalResponseBuilder.buildResponse(

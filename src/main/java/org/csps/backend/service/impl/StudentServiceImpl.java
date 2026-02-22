@@ -1,6 +1,10 @@
 package org.csps.backend.service.impl;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.csps.backend.domain.dtos.request.StudentRequestDTO;
 import org.csps.backend.domain.dtos.request.UserRequestDTO;
@@ -71,7 +75,7 @@ public class StudentServiceImpl implements StudentService {
         Student student = studentMapper.toEntity(studentRequestDTO);
         student.setUserAccount(savedUserAccount);
         student.setStudentId(studentId);
-        
+            
     
         // Persist Student
         student = studentRepository.save(student);
@@ -89,11 +93,7 @@ public class StudentServiceImpl implements StudentService {
    @Override
    public Page<StudentResponseDTO> getAllStudents(Pageable pageable) {
        return studentRepository.findAll(pageable)
-               .map(student -> {
-                   StudentResponseDTO dto = studentMapper.toResponseDTO(student);
-                   enrichStudentWithAdminInfo(dto, student);
-                   return dto;
-               });
+               .map(studentMapper::toResponseDTO);
    }
 
 
@@ -158,21 +158,19 @@ public class StudentServiceImpl implements StudentService {
        return studentMapper.toResponseDTO(student);
    }
    
-   /* enrich student dto with admin info if they're already an admin */
+
+   /* overloaded method for single student queries (uses direct database lookup) */
    private void enrichStudentWithAdminInfo(StudentResponseDTO studentDTO, Student student) {
        if (student.getUserAccount() != null && 
            student.getUserAccount().getUserProfile() != null) {
            
            Long userProfileId = student.getUserAccount().getUserProfile().getUserId();
            
-           // check if student is already an admin
+           // single query for individual student lookup
            Optional<Admin> adminOpt = adminRepository.findByUserAccount_UserProfile_UserId(userProfileId);
-
            
            if (adminOpt.isPresent()) {
                Admin admin = adminOpt.get();
-               // format admin name as "FIRSTNAME LASTNAME"
-            
                studentDTO.setAdminPosition(admin.getPosition());
            }
        }

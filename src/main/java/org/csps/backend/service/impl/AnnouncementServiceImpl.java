@@ -64,7 +64,6 @@ public class AnnouncementServiceImpl implements AnnouncementService {
 
             return announcements;
         } catch (Exception e) {
-            System.out.println("Error fetching announcements: " + e.getMessage());
             throw new RuntimeException("Failed to fetch announcements from Facebook API",e);
             
         }

@@ -1,5 +1,6 @@
 package org.csps.backend.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.csps.backend.domain.entities.Admin;
@@ -26,4 +27,8 @@ public interface AdminRepository extends JpaRepository<Admin, Long> {
     /* efficient query to get admin position for JWT generation without full entity fetch */
     @Query("SELECT a.position FROM Admin a WHERE a.userAccount.userAccountId = :accountId")
     Optional<AdminPosition> findPositionByUserAccountId(@Param("accountId") Long accountId);
+
+    /* batch query to fetch admins by multiple user profile ids - avoids N+1 for student pages */
+    @Query("SELECT a FROM Admin a LEFT JOIN FETCH a.userAccount ua LEFT JOIN FETCH ua.userProfile WHERE ua.userProfile.userId IN :userProfileIds")
+    List<Admin> findByUserProfileIds(@Param("userProfileIds") List<Long> userProfileIds);
 }

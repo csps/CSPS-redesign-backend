@@ -11,11 +11,14 @@ import org.csps.backend.domain.entities.UserAccount;
 import org.csps.backend.domain.entities.UserProfile;
 import org.csps.backend.domain.enums.OrderStatus;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Component;
 
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 
+
+@Component
 public class OrderSpecification {
     
     /**

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.csps.backend.domain.dtos.request.OrderSearchDTO;
 import org.csps.backend.domain.dtos.response.sales.ChartPointDTO;
 import org.csps.backend.domain.dtos.response.sales.SalesStatsDTO;
 import org.csps.backend.domain.dtos.response.sales.TransactionDTO;
@@ -21,14 +22,17 @@ import org.csps.backend.domain.enums.MerchType;
 import org.csps.backend.repository.MerchVariantItemRepository;
 import org.csps.backend.repository.OrderItemRepository;
 import org.csps.backend.repository.OrderRepository;
+import org.csps.backend.repository.specification.OrderSpecification;
 import org.csps.backend.service.SalesService;
 import org.csps.backend.service.StudentMembershipService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -39,6 +43,9 @@ public class SalesServiceImpl implements SalesService {
     private final MerchVariantItemRepository merchVariantItemRepository;
     private final OrderItemRepository orderItemRepository;
     private final StudentMembershipService studentMembershipService;
+    
+    private final OrderSpecification orderSpecification;
+
 
     // Deployment date - set to today (February 8, 2026) as dummy data
     private static final LocalDate DEPLOYMENT_DATE = LocalDate.of(2026, 2, 8);
@@ -62,49 +69,18 @@ public class SalesServiceImpl implements SalesService {
     }
 
     @Override
-    public Page<TransactionDTO> getTransactions(Pageable pageable, String search, String status, Integer year) {
-        List<Order> allOrders = orderRepository.findAll();
-
-        List<TransactionDTO> filteredOrders = allOrders.stream()
-                .filter(order -> {
-                    // Filter by status
-                    if (status != null && !status.isEmpty()) {
-                        String orderStatusStr = order.getOrderStatus().name();
-                        if (!orderStatusStr.equals(status)) {
-                            return false;
-                        }
-                    }
-
-                    // Filter by year
-                    if (year != null && order.getOrderDate() != null) {
-                        if (order.getOrderDate().getYear() != year) {
-                            return false;
-                        }
-                    }
-
-                    // Filter by search
-                    if (search != null && !search.isEmpty()) {
-                        String searchLower = search.toLowerCase();
-                        String studentName = order.getStudent().getUserAccount().getUserProfile().getFirstName() + " " +
-                                order.getStudent().getUserAccount().getUserProfile().getLastName();
-                        if (!studentName.toLowerCase().contains(searchLower) &&
-                                !order.getOrderId().toString().contains(searchLower)) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                })
-                .map(this::mapToTransactionDTO)
-                .sorted(Comparator.comparing(TransactionDTO::getOrderId))
-                .collect(Collectors.toList());
-
-        int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), filteredOrders.size());
-
-        List<TransactionDTO> pageContent = filteredOrders.subList(start, end);
-        return new PageImpl<>(pageContent, pageable, filteredOrders.size());
+    public Page<TransactionDTO> getTransactions(Pageable pageable, OrderSearchDTO searchDTO) {
+        /* build specification for database-level filtering to prevent loading all orders into memory */
+        Specification<Order> spec = orderSpecification.withFilters(searchDTO);
+        
+        /* fetch paginated results with eager loading via @EntityGraph in OrderRepository.findAll(pageable) */
+        Page<Order> orders = orderRepository.findAll(spec, pageable);
+        
+        /* map orders to DTOs */
+        return orders.map(this::mapToTransactionDTO);
     }
+
+
 
     @Override
     @Transactional

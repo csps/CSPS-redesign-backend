@@ -95,6 +95,7 @@ public class UserServiceImpl implements UserService {
 
         // Create and save UserProfile
         UserProfile userProfile = userMapper.toUserProfile(userRequestDTO);
+        userProfile.setIsProfileComplete(true);
         UserProfile savedProfile = userProfileRepository.save(userProfile);
 
         // Create UserAccount and link it to the saved profile
@@ -102,10 +103,11 @@ public class UserServiceImpl implements UserService {
 
         userAccount.setUserProfile(savedProfile);
 
-        String tempPassword = String.format("%s-%s", passwordFormat, firstName);
+        String tempPassword = String.format("%s%s", passwordFormat, studentId);
         userAccount.setPassword(passwordEncoder.encode(tempPassword)); // Hash the password
         userAccount.setUsername(String.format("%s-%s", userNameFormat, studentId));
         userAccount.setRole(UserRole.STUDENT);
+
         
 
         return userAccountRepository.save(userAccount);

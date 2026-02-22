@@ -1,5 +1,6 @@
 package org.csps.backend.controller;
 
+import org.csps.backend.domain.dtos.request.OrderSearchDTO;
 import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.sales.SalesStatsDTO;
 import org.csps.backend.domain.dtos.response.sales.TransactionDTO;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,12 +43,10 @@ public class SalesController {
     public ResponseEntity<GlobalResponseBuilder<Page<TransactionDTO>>> getTransactions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "6") int size,
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) Integer year) {
+            @ModelAttribute OrderSearchDTO search) {
         
         Pageable pageable = PageRequest.of(page, size);
-        Page<TransactionDTO> transactions = salesService.getTransactions(pageable, search, status, year);
+        Page<TransactionDTO> transactions = salesService.getTransactions(pageable, search);
         return GlobalResponseBuilder.buildResponse("Transactions retrieved successfully", transactions, HttpStatus.OK);
     }
 

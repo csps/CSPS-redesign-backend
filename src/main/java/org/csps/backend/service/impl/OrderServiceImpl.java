@@ -86,7 +86,6 @@ public class OrderServiceImpl implements OrderService {
                 cartItemService.removeCartItem(studentId, itemRequest.getMerchVariantItemId());
             } catch (CartItemNotFoundException e) {
                 // Item not in cart is OK - might have been removed already
-                System.out.println("Item not found in cart (already removed): " + itemRequest.getMerchVariantItemId());
             } catch (Exception e) {
                 // Log other failures but don't fail the order
                 System.err.println("Error: Failed to remove item from cart after ordering: " + e.getMessage());

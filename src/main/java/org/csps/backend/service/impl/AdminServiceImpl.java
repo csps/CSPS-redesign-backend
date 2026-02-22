@@ -80,8 +80,6 @@ public class AdminServiceImpl implements AdminService {
             throw new PositionAlreadyTakenException("Position already taken: " + adminPostRequestDTO.getPosition());
         }
 
-
-        System.out.println("ADMIN PASSWORD : " + String.format("Creating Admin for UserProfile: %s", userProfile.getLastName() + " " + userProfile.getUserId()));
         UserAccount userAccount = UserAccount.builder()
                 .userProfile(userProfile)
                 .role(UserRole.ADMIN)

@@ -12,24 +12,27 @@ import org.csps.backend.domain.dtos.response.MerchSummaryResponseDTO;
 import org.csps.backend.domain.entities.Merch;
 import org.csps.backend.domain.entities.MerchVariant;
 import org.csps.backend.domain.enums.MerchType;
+import org.csps.backend.exception.CannotDeleteMerchException;
 import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.exception.MerchAlreadyExistException;
 import org.csps.backend.exception.MerchNotFoundException;
 import org.csps.backend.mapper.MerchMapper;
+import org.csps.backend.repository.CartItemRepository;
 import org.csps.backend.repository.MerchRepository;
+import org.csps.backend.repository.OrderItemRepository;
+import org.csps.backend.repository.StudentMembershipRepository;
 import org.csps.backend.service.MerchService;
 import org.csps.backend.service.MerchVariantItemService;
 import org.csps.backend.service.MerchVariantService;
 import org.csps.backend.service.S3Service;
+import org.csps.backend.service.StudentService;
 
 import java.util.stream.Collectors;
 
-import org.csps.backend.repository.CartItemRepository;
-import org.csps.backend.repository.StudentMembershipRepository;
-
-import org.csps.backend.service.StudentService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
@@ -52,7 +55,7 @@ public class MerchServiceImpl implements MerchService {
     private final MerchVariantItemService merchVariantItemService;
     private final StudentMembershipRepository studentMembershipRepository;
     private final CartItemRepository cartItemRepository;
-
+    private final OrderItemRepository orderItemRepository;
     private final StudentService studentService;
 
 
@@ -274,25 +277,33 @@ public class MerchServiceImpl implements MerchService {
         Merch merch = merchRepository.findById(merchId)
                 .orElseThrow(() -> new MerchNotFoundException("Merch not found with id: " + merchId));
 
-        // Delete S3 images for all variants
-        if (merch.getMerchVariantList() != null) {
-            for (MerchVariant variant : merch.getMerchVariantList()) {
-                if (variant.getS3ImageKey() != null 
-                    && !variant.getS3ImageKey().isEmpty() 
-                    && !variant.getS3ImageKey().equals("placeholder")) {
-                    s3Service.deleteFile(variant.getS3ImageKey());
-                }
-            }
+        // soft delete: mark as inactive instead of hard delete
+        merch.setIsActive(false);
+        merchRepository.save(merch);
+    }
+
+    @Override
+    public Page<MerchDetailedResponseDTO> getArchivedMerch(Pageable pageable) {
+        /* retrieve archived merch paginated with eager loading of variants */
+        Page<Merch> archivedMerch = merchRepository.findArchivedMerch(pageable);
+        return archivedMerch.map(merchMapper::toDetailedResponseDTO);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(cacheNames = {"allMerchs", "merchSummaries", "merch"}, allEntries = true)
+    public MerchDetailedResponseDTO revertMerch(Long merchId) {
+        /* revert archived merch back to active status */
+        Merch merch = merchRepository.findByIdAndIsInactive(merchId)
+                .orElseThrow(() -> new MerchNotFoundException("Archived merch not found with id: " + merchId));
+        
+
+        if (merch.getIsActive()) {
+            throw new InvalidRequestException("Merch with id " + merchId + " is already active");
         }
 
-        // Delete S3 image for the merch itself
-        if (merch.getS3ImageKey() != null 
-            && !merch.getS3ImageKey().isEmpty() 
-            && !merch.getS3ImageKey().equals("placeholder")) {
-            s3Service.deleteFile(merch.getS3ImageKey());
-        }
-
-        // Delete merch (cascades to variants and items)
-        merchRepository.delete(merch);
+        merch.setIsActive(true);
+        Merch reverted = merchRepository.save(merch);
+        return merchMapper.toDetailedResponseDTO(reverted);
     }
 }
