@@ -5,28 +5,21 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import org.csps.backend.domain.enums.MerchType;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import java.util.List;
+
+import org.hibernate.annotations.BatchSize;
 
 @Builder
 @Entity
 @Table(name = "merch", indexes = {
-    @Index(name = "idx_merch_type", columnList = "merch_type")
+    @Index(name = "idx_merch_type", columnList = "merch_type"),
+    @Index(name = "idx_merch_is_active", columnList = "is_active")
 })
-@NamedEntityGraph(
-    name = "Merch.withVariantsAndItems",
-    attributeNodes = {
-        @NamedAttributeNode(
-            value = "merchVariantList",
-            subgraph = "variants-with-items"
-        )
-    },
-    subgraphs = @NamedSubgraph(
-        name = "variants-with-items",
-        attributeNodes = @NamedAttributeNode("merchVariantItems")
-    )
-)
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
@@ -51,6 +44,12 @@ public class Merch {
     @Column(nullable = false)
     private String s3ImageKey;  // S3 object key of the first variant's image - REQUIRED
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;  // soft delete flag
+
     @OneToMany(mappedBy = "merch", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Fetch(FetchMode.SUBSELECT)
+    @BatchSize(size = 20)
     private List<MerchVariant> merchVariantList;
 }

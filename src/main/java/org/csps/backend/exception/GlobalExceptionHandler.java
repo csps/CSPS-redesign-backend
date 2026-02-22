@@ -205,6 +205,17 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(CannotDeleteMerchException.class)
+    public ResponseEntity<Map<String, Object>> handleCannotDeleteMerchException(CannotDeleteMerchException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.CONFLICT.value());
+        error.put("error", "Cannot Delete Merchandise");
+        error.put("message", ex.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(PositionAlreadyTakenException.class)
     public ResponseEntity<Map<String, Object>> handlePositionAlreadyTakenException(PositionAlreadyTakenException ex) {
         Map<String, Object> error = new HashMap<>();

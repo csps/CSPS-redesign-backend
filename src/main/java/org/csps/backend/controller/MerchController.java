@@ -11,6 +11,9 @@ import org.csps.backend.domain.dtos.response.MerchDetailedResponseDTO;
 import org.csps.backend.domain.dtos.response.MerchSummaryResponseDTO;
 import org.csps.backend.domain.enums.MerchType;
 import org.csps.backend.service.MerchService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -143,7 +146,31 @@ public class MerchController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<GlobalResponseBuilder<Void>> deleteMerch(@PathVariable Long merchId) {
         merchService.deleteMerch(merchId);
-        return GlobalResponseBuilder.buildResponse("Merch deleted successfully", null, HttpStatus.NO_CONTENT);
+        return GlobalResponseBuilder.buildResponse("Merch archived successfully", null, HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Get archived merchandise with pagination and eager loading.
+     * Only fetches the size of the page requested.
+     */
+    @GetMapping("/archive")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<GlobalResponseBuilder<Page<MerchDetailedResponseDTO>>> getArchivedMerch(
+            @PageableDefault(size = 10, page = 0) Pageable pageable
+    ) {
+        Page<MerchDetailedResponseDTO> archived = merchService.getArchivedMerch(pageable);
+        return GlobalResponseBuilder.buildResponse("Retrieved archived merchandise", archived, HttpStatus.OK);
+    }
+
+    /**
+     * Revert archived merchandise back to active status.
+     * Makes archived merchandise visible and available for purchase again.
+     */
+    @PutMapping("/{merchId}/revert")
+    @PreAuthorize("hasRole('ADMIN_EXECUTIVE') or hasRole('ADMIN_FINANCE')")
+    public ResponseEntity<GlobalResponseBuilder<MerchDetailedResponseDTO>> revertMerch(@PathVariable Long merchId) {
+        MerchDetailedResponseDTO reverted = merchService.revertMerch(merchId);
+        return GlobalResponseBuilder.buildResponse("Merchandise reverted to active status", reverted, HttpStatus.OK);
     }
 
 }
