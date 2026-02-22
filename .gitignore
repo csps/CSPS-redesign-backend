@@ -43,3 +43,4 @@ build/
 compose.yml
 !compose.yml.example
 **/docs
+spy.log
