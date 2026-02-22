@@ -73,6 +73,11 @@ public class JwtService {
         // Add base claims
         customClaim.put("role", user.getRole().toString());
 
+
+        boolean middleNameExists = user.getUserProfile().getMiddleName() != null && !user.getUserProfile().getMiddleName().isEmpty();
+        String fullName = user.getUserProfile().getFirstName() + (middleNameExists ? " " + user.getUserProfile().getMiddleName() : "") + " " + user.getUserProfile().getLastName();
+        customClaim.put("fullName", fullName);
+
         // Add role-specific claims
         if (user.getRole() == UserRole.STUDENT) {
             if (domainId != null) {
