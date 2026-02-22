@@ -3,22 +3,21 @@ package org.csps.backend.service.impl;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.csps.backend.domain.dtos.request.OrderSearchDTO;
+import org.csps.backend.domain.dtos.request.StudentMembershipRequestDTO;
 import org.csps.backend.domain.dtos.response.sales.ChartPointDTO;
 import org.csps.backend.domain.dtos.response.sales.SalesStatsDTO;
 import org.csps.backend.domain.dtos.response.sales.TransactionDTO;
 import org.csps.backend.domain.entities.Order;
 import org.csps.backend.domain.entities.OrderItem;
+import org.csps.backend.domain.enums.MerchType;
 import org.csps.backend.domain.enums.OrderStatus;
 import org.csps.backend.domain.enums.SalesPeriod;
-import org.csps.backend.domain.dtos.request.StudentMembershipRequestDTO;
-import org.csps.backend.domain.enums.MerchType;
 import org.csps.backend.repository.MerchVariantItemRepository;
 import org.csps.backend.repository.OrderItemRepository;
 import org.csps.backend.repository.OrderRepository;
@@ -26,13 +25,11 @@ import org.csps.backend.repository.specification.OrderSpecification;
 import org.csps.backend.service.SalesService;
 import org.csps.backend.service.StudentMembershipService;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 
 @Service
