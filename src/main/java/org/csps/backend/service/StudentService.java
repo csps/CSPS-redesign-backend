@@ -3,6 +3,7 @@ package org.csps.backend.service;
 import java.util.Optional;
 
 import org.csps.backend.domain.dtos.request.StudentRequestDTO;
+import org.csps.backend.domain.dtos.request.StudentSearchDTO;
 import org.csps.backend.domain.dtos.request.UserRequestDTO;
 import org.csps.backend.domain.dtos.response.StudentResponseDTO;
 import org.csps.backend.domain.entities.Student;
@@ -21,4 +22,7 @@ public interface StudentService {
    
    /* complete incomplete student profile with full user information */
    StudentResponseDTO completeStudentProfile(String studentId, UserRequestDTO userRequestDTO);
+   
+   /* get non-member students with optional search filters and pagination */
+   Page<StudentResponseDTO> getNonMemberStudents(StudentSearchDTO searchDTO, Pageable pageable);
 }
