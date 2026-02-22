@@ -1,7 +1,6 @@
 package org.csps.backend.mapper;
 
 import org.csps.backend.domain.dtos.request.MerchVariantItemRequestDTO;
-import org.csps.backend.domain.dtos.request.MerchVariantRequestDTO;
 import org.csps.backend.domain.dtos.response.MerchVariantItemResponseDTO;
 import org.csps.backend.domain.entities.MerchVariantItem;
 import org.mapstruct.Mapper;

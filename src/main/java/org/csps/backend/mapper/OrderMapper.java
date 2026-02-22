@@ -15,10 +15,13 @@ public interface OrderMapper {
     OrderResponseDTO toResponseDTO(Order order);
 
     default String getStudentName(Order order) {
+        if (order == null || order.getStudent() == null || order.getStudent().getUserAccount() == null || order.getStudent().getUserAccount().getUserProfile() == null) {
+            return "";
+        }
         var profile = order.getStudent().getUserAccount().getUserProfile();
         String middle = profile.getMiddleName();
         String middleInitial = (middle == null || middle.isEmpty()) ? "" : middle.charAt(0) + ". ";
-        return profile.getFirstName() + " " + middleInitial + profile.getLastName();
+        return (profile.getFirstName() != null ? profile.getFirstName() : "") + " " + middleInitial + (profile.getLastName() != null ? profile.getLastName() : "");
     }
 
  
