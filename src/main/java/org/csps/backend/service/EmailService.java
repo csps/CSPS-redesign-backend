@@ -3,6 +3,7 @@ package org.csps.backend.service;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import jakarta.mail.MessagingException;
@@ -18,8 +19,9 @@ public class EmailService {
     private final JavaMailSender mailSender;
     
     /**
-     * send simple text email
+     * send simple text email asynchronously
      */
+    @Async("emailTaskExecutor")
     public void sendSimpleEmail(String to, String subject, String body) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
@@ -37,8 +39,9 @@ public class EmailService {
     }
     
     /**
-     * send html email
+     * send html email asynchronously
      */
+    @Async("emailTaskExecutor")
     public void sendHtmlEmail(String to, String subject, String htmlBody) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
