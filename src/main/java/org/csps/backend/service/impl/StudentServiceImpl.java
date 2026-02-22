@@ -1,6 +1,10 @@
 package org.csps.backend.service.impl;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.csps.backend.domain.dtos.request.StudentRequestDTO;
 import org.csps.backend.domain.dtos.request.UserRequestDTO;
@@ -88,12 +92,32 @@ public class StudentServiceImpl implements StudentService {
     // Get all Students
    @Override
    public Page<StudentResponseDTO> getAllStudents(Pageable pageable) {
-       return studentRepository.findAll(pageable)
-               .map(student -> {
-                   StudentResponseDTO dto = studentMapper.toResponseDTO(student);
-                   enrichStudentWithAdminInfo(dto, student);
-                   return dto;
-               });
+       Page<Student> studentPage = studentRepository.findAll(pageable);
+       
+       // batch fetch all user profile IDs from the page
+       List<Long> userProfileIds = studentPage.getContent().stream()
+           .filter(s -> s.getUserAccount() != null && s.getUserAccount().getUserProfile() != null)
+           .map(s -> s.getUserAccount().getUserProfile().getUserId())
+           .collect(Collectors.toList());
+       
+       // batch fetch all admins for these user profiles in single query
+       List<Admin> adminsList = userProfileIds.isEmpty() 
+           ? List.of() 
+           : adminRepository.findByUserProfileIds(userProfileIds);
+       
+       // build map for O(1) lookup instead of N queries
+       Map<Long, Admin> adminsMap = adminsList.stream()
+           .collect(Collectors.toMap(
+               admin -> admin.getUserAccount().getUserProfile().getUserId(),
+               admin -> admin
+           ));
+       
+       // map students to DTOs with admin info enrichment
+       return studentPage.map(student -> {
+           StudentResponseDTO dto = studentMapper.toResponseDTO(student);
+           enrichStudentWithAdminInfo(dto, student, adminsMap);
+           return dto;
+       });
    }
 
 
@@ -159,20 +183,32 @@ public class StudentServiceImpl implements StudentService {
    }
    
    /* enrich student dto with admin info if they're already an admin */
+   private void enrichStudentWithAdminInfo(StudentResponseDTO studentDTO, Student student, Map<Long, Admin> adminsMap) {
+       if (student.getUserAccount() != null && 
+           student.getUserAccount().getUserProfile() != null) {
+           
+           Long userProfileId = student.getUserAccount().getUserProfile().getUserId();
+           
+           // lookup admin from map instead of querying database
+           Admin admin = adminsMap.get(userProfileId);
+           if (admin != null) {
+               studentDTO.setAdminPosition(admin.getPosition());
+           }
+       }
+   }
+
+   /* overloaded method for single student queries (uses direct database lookup) */
    private void enrichStudentWithAdminInfo(StudentResponseDTO studentDTO, Student student) {
        if (student.getUserAccount() != null && 
            student.getUserAccount().getUserProfile() != null) {
            
            Long userProfileId = student.getUserAccount().getUserProfile().getUserId();
            
-           // check if student is already an admin
+           // single query for individual student lookup
            Optional<Admin> adminOpt = adminRepository.findByUserAccount_UserProfile_UserId(userProfileId);
-
            
            if (adminOpt.isPresent()) {
                Admin admin = adminOpt.get();
-               // format admin name as "FIRSTNAME LASTNAME"
-            
                studentDTO.setAdminPosition(admin.getPosition());
            }
        }
