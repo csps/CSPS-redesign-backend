@@ -7,7 +7,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.csps.backend.domain.dtos.request.StudentRequestDTO;
-import org.csps.backend.domain.dtos.request.StudentSearchDTO;
 import org.csps.backend.domain.dtos.request.UserRequestDTO;
 import org.csps.backend.domain.dtos.response.StudentResponseDTO;
 import org.csps.backend.domain.entities.Admin;
@@ -22,7 +21,6 @@ import org.csps.backend.mapper.StudentMapper;
 import org.csps.backend.repository.AdminRepository;
 import org.csps.backend.repository.StudentRepository;
 import org.csps.backend.repository.UserProfileRepository;
-import org.csps.backend.repository.specification.StudentSpecification;
 import org.csps.backend.service.CartService;
 import org.csps.backend.service.StudentService;
 import org.csps.backend.service.UserService;
@@ -176,16 +174,5 @@ public class StudentServiceImpl implements StudentService {
                studentDTO.setAdminPosition(admin.getPosition());
            }
        }
-   }
-
-   @Override
-   public Page<StudentResponseDTO> getNonMemberStudents(StudentSearchDTO searchDTO, Pageable pageable) {
-       /* get non-member students with optional search filters and pagination */
-       Page<Student> students = studentRepository.findAll(
-           StudentSpecification.nonMembersWithFilters(searchDTO),
-           pageable
-       );
-       
-       return students.map(studentMapper::toResponseDTO);
    }
 }
