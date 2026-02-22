@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Objects;
 
 import org.csps.backend.domain.enums.ClothingSizing;
+import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -34,10 +37,6 @@ import lombok.NoArgsConstructor;
         @Index(name = "idx_merch_id", columnList = "merch_id")
     }
 )
-@NamedEntityGraph(
-    name = "MerchVariant.withItems",
-    attributeNodes = @NamedAttributeNode("merchVariantItems")
-)
 @Data
 @Builder
 @AllArgsConstructor
@@ -53,6 +52,8 @@ public class MerchVariant {
     private Merch merch;
 
     @OneToMany(mappedBy="merchVariant", cascade=CascadeType.ALL)
+    @Fetch(FetchMode.SUBSELECT)
+    @BatchSize(size = 20)
     private List<MerchVariantItem> merchVariantItems;
 
     @Column(nullable = true)

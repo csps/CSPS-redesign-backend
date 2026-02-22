@@ -26,10 +26,16 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     @EntityGraph(value = "Order.withItemsAndDetails", type = EntityGraph.EntityGraphType.FETCH)
     Page<Order> findAllByOrderByOrderDateDesc(Pageable pageable);
     
+    /* efficient paginated query for transactions with eager loading to prevent N+1 queries */
+    @EntityGraph(attributePaths = {"student", "student.userAccount", "student.userAccount.userProfile", "orderItems", "orderItems.merchVariantItem", "orderItems.merchVariantItem.merchVariant", "orderItems.merchVariantItem.merchVariant.merch"}, type = EntityGraph.EntityGraphType.FETCH)
+    Page<Order> findAll(Pageable pageable);
+    
     List<Order> findByOrderDateBetween(LocalDateTime start, LocalDateTime end);
     
+    @EntityGraph(attributePaths = {"student", "student.userAccount", "student.userAccount.userProfile"}, type = EntityGraph.EntityGraphType.FETCH)
     List<Order> findByOrderDateBetweenAndOrderStatus(LocalDateTime start, LocalDateTime end, OrderStatus status);
     
+    @EntityGraph(attributePaths = {"student", "student.userAccount", "student.userAccount.userProfile"}, type = EntityGraph.EntityGraphType.FETCH)
     List<Order> findByOrderStatus(OrderStatus status);
 }
 
