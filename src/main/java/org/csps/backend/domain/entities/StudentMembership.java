@@ -11,6 +11,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.ManyToOne;
@@ -26,7 +27,9 @@ import lombok.ToString;
 
 @Entity
 @Data
-@Table
+@Table(indexes={
+    @Index(name = "idx_membership_student_id", columnList = "student_id")
+})
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
