@@ -23,4 +23,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     Page<OrderItem> findByOrderStudentStudentIdAndOrderStatusOrderByUpdatedAtDesc(String studentId, OrderStatus status, Pageable pageable);
     
     List<OrderItem> findTop5ByOrderStatusInOrderByCreatedAtDesc(List<OrderStatus> statuses);
+    
+    /* check if any order items reference merch variant items */
+    boolean existsByMerchVariantItemMerchVariantMerchVariantId(Long merchVariantId);
 }
