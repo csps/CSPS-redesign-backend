@@ -103,7 +103,6 @@ public class EventSessionServiceImpl implements EventSessionService {
         EventSession session = eventSessionRepository.findById(sessionId)
             .orElseThrow(() -> new EventSessionNotFoundException("Session not found with ID: " + sessionId));
 
-        System.out.println("Updating session ID " + sessionId + " to status: " + status); // debug log
         
         try {
             SessionStatus newStatus = SessionStatus.valueOf(status.toUpperCase());

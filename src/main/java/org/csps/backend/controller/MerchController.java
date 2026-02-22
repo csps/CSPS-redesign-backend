@@ -87,7 +87,6 @@ public class MerchController {
                 .build();
 
 
-        System.out.println("MERCH REQUEST: " + request);
 
         MerchDetailedResponseDTO createdMerch = merchService.createMerch(request);
         String message = "Merchandise created successfully with all variants and items";
