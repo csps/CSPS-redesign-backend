@@ -34,6 +34,11 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     @EntityGraph(attributePaths = {"order", "order.student", "order.student.userAccount", "order.student.userAccount.userProfile", "merchVariantItem", "merchVariantItem.merchVariant", "merchVariantItem.merchVariant.merch"}, type = EntityGraph.EntityGraphType.FETCH)
     List<OrderItem> findTop5ByOrderStatusInOrderByCreatedAtDesc(List<OrderStatus> statuses);
     
+    /* eagerly load order item with student profile and merch details for notifications */
+    @EntityGraph(attributePaths = {"order", "order.student", "order.student.userAccount", "order.student.userAccount.userProfile", "merchVariantItem", "merchVariantItem.merchVariant", "merchVariantItem.merchVariant.merch"}, type = EntityGraph.EntityGraphType.FETCH)
+    @Query("SELECT oi FROM OrderItem oi WHERE oi.orderItemId = :id")
+    java.util.Optional<OrderItem> findByIdWithStudentAndMerchDetails(@Param("id") Long id);
+
     /* check if any order items reference merch variant items */
     boolean existsByMerchVariantItemMerchVariantMerchVariantId(Long merchVariantId);
     

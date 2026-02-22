@@ -17,6 +17,7 @@ import org.csps.backend.repository.MerchVariantItemRepository;
 import org.csps.backend.repository.OrderItemRepository;
 import org.csps.backend.repository.OrderRepository;
 import org.csps.backend.service.OrderItemService;
+import org.csps.backend.service.OrderNotificationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class OrderItemServiceImpl implements OrderItemService {
     private final OrderRepository orderRepository;
     private final MerchVariantItemRepository merchVariantItemRepository;
     private final OrderItemMapper orderItemMapper;
+    private final OrderNotificationService orderNotificationService;
     
     @Override
     @Transactional
@@ -200,6 +202,17 @@ public class OrderItemServiceImpl implements OrderItemService {
         orderItem.setUpdatedAt(LocalDateTime.now());
         
         OrderItem updatedOrderItem = orderItemRepository.save(orderItem);
+
+            OrderItem itemWithDetails = orderItemRepository.findByIdWithStudentAndMerchDetails(id)
+                .orElse(null);
+            if (itemWithDetails != null) {
+                var notificationData = orderNotificationService.extractNotificationData(itemWithDetails, status);
+                if (notificationData != null) {
+                    orderNotificationService.sendOrderStatusEmail(notificationData);
+                }
+            
+        }
+
         return orderItemMapper.toResponseDTO(updatedOrderItem);
     }
 
