@@ -48,7 +48,7 @@ public class UserProfile {
     @Email(message = "Invalid email format")
     private String email;
 
-    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Column(nullable = false)
     @Builder.Default
     private Boolean isProfileComplete = false;
 

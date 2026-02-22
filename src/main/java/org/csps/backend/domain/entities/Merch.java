@@ -14,6 +14,19 @@ import java.util.List;
 @Table(name = "merch", indexes = {
     @Index(name = "idx_merch_type", columnList = "merch_type")
 })
+@NamedEntityGraph(
+    name = "Merch.withVariantsAndItems",
+    attributeNodes = {
+        @NamedAttributeNode(
+            value = "merchVariantList",
+            subgraph = "variants-with-items"
+        )
+    },
+    subgraphs = @NamedSubgraph(
+        name = "variants-with-items",
+        attributeNodes = @NamedAttributeNode("merchVariantItems")
+    )
+)
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
