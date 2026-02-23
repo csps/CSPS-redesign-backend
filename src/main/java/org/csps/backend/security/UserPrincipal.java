@@ -1,9 +1,11 @@
 package org.csps.backend.security;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 import org.csps.backend.domain.entities.UserAccount;
+import org.csps.backend.domain.enums.AdminPosition;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,6 +22,7 @@ public class UserPrincipal implements UserDetails {
     private final UserAccount user;  // underlying user entity
     private final String domainId;   // role-specific identifier (studentId/adminId)
     private final String role;       // role name (STUDENT / ADMIN)
+    private final AdminPosition position; 
 
     // Expose domainId directly
     public String getDomainId() {
@@ -45,7 +48,31 @@ public class UserPrincipal implements UserDetails {
     // Spring Security: grant role authority (e.g., ROLE_ADMIN, ROLE_STUDENT)
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role));
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        if (getRole().equalsIgnoreCase("ADMIN")) {
+
+            authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+            switch(position) {
+                case PRESIDENT, VP_INTERNAL, VP_EXTERNAL, SECRETARY -> {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN_EXECUTIVE"));
+                }
+                case TREASURER, ASSISTANT_TREASURER -> {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN_FINANCE"));
+                }
+                case DEVELOPER -> {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_DEVELOPER"));
+                }
+            }
+
+            return authorities;
+        }
+
+        return List.of(new SimpleGrantedAuthority("ROLE_" + getRole()));
+        
+    }
+
+    public String getPosition() {
+        return position != null ? position.name() : null;
     }
 
     // Delegate to UserAccount for credentials

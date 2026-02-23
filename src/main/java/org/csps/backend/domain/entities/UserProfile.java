@@ -1,6 +1,7 @@
 package org.csps.backend.domain.entities;
 
-import java.util.Date;
+import java.time.LocalDate;
+import java.util.List;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -8,7 +9,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.Index;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;
@@ -17,7 +19,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table
+@Table(indexes={
+    @Index(name = "idx_email", columnList = "email")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -37,14 +41,18 @@ public class UserProfile {
 
     private String middleName;
 
-    @Column(nullable = false)
-    private Date birthDate;
+    @Column(nullable = true)
+    private LocalDate birthDate;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     @Email(message = "Invalid email format")
     private String email;
 
-    // Optional: Add back-reference
-    @OneToOne(mappedBy = "userProfile", fetch = FetchType.LAZY)
-    private UserAccount userAccount;
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isProfileComplete = false;
+
+    // One-to-many relationship: One UserProfile can have multiple UserAccounts
+    @OneToMany(mappedBy = "userProfile", fetch = FetchType.LAZY)
+    private List<UserAccount> userAccounts;
 }

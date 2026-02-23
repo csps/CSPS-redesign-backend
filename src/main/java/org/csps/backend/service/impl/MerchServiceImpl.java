@@ -1,161 +1,305 @@
  package org.csps.backend.service.impl;
 
-import java.time.LocalDateTime;
+import java.io.IOException;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
-import org.csps.backend.domain.dtos.request.InvalidRequestException;
-import org.csps.backend.domain.dtos.request.MerchAlreadyExistException;
 import org.csps.backend.domain.dtos.request.MerchRequestDTO;
 import org.csps.backend.domain.dtos.request.MerchUpdateRequestDTO;
-import org.csps.backend.domain.dtos.response.MerchResponseDTO;
-import org.csps.backend.domain.dtos.response.MerchVariantResponseDTO;
+import org.csps.backend.domain.dtos.request.MerchVariantItemRequestDTO;
+import org.csps.backend.domain.dtos.request.MerchVariantRequestDTO;
+import org.csps.backend.domain.dtos.response.MerchDetailedResponseDTO;
+import org.csps.backend.domain.dtos.response.MerchSummaryResponseDTO;
 import org.csps.backend.domain.entities.Merch;
-import org.csps.backend.domain.entities.MerchVariant;
 import org.csps.backend.domain.enums.MerchType;
+import org.csps.backend.exception.InvalidRequestException;
+import org.csps.backend.exception.MerchAlreadyExistException;
 import org.csps.backend.exception.MerchNotFoundException;
 import org.csps.backend.mapper.MerchMapper;
-import org.csps.backend.mapper.MerchVariantMapper;
+import org.csps.backend.repository.CartItemRepository;
 import org.csps.backend.repository.MerchRepository;
+import org.csps.backend.repository.OrderItemRepository;
+import org.csps.backend.repository.StudentMembershipRepository;
 import org.csps.backend.service.MerchService;
+import org.csps.backend.service.MerchVariantItemService;
+import org.csps.backend.service.MerchVariantService;
+import org.csps.backend.service.S3Service;
+import org.csps.backend.service.StudentService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Service implementation for Merch (base merchandise).
+ * Manages merch creation, retrieval, and updates.
+ * Delegates variant operations to MerchVariantService.
+ * Delegates item-level (size/stock) operations to MerchVariantItemService.
+ */
 @Service
 @RequiredArgsConstructor
 public class MerchServiceImpl implements MerchService {
 
     private final MerchRepository merchRepository;
     private final MerchMapper merchMapper;
+    private final S3Service s3Service;
+    private final MerchVariantService merchVariantService;
+    private final MerchVariantItemService merchVariantItemService;
+    private final StudentMembershipRepository studentMembershipRepository;
+    private final CartItemRepository cartItemRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final StudentService studentService;
 
-    private final MerchVariantMapper merchVariantMapper;
 
     @Override
     @Transactional
-    public MerchResponseDTO createMerch(MerchRequestDTO request) {
-        // Step 1: Convert request → entity
-        Merch merch = merchMapper.toEntity(request);
+    @CacheEvict(cacheNames = {"allMerchs", "merchSummaries"}, allEntries = true)
+    public MerchDetailedResponseDTO createMerch(MerchRequestDTO request) throws IOException {
+        if (request == null) {
+            throw new InvalidRequestException("Request is required");
+        }
 
-        // Step 2: Convert variant DTOs → entities
-        List<MerchVariant> merchVariants = request.getMerchVariantRequestDto()
-            .stream()
-            .map(merchVariantMapper::toEntity)
-            .toList();
+        String merchName = request.getMerchName();
+        MerchType merchType = request.getMerchType();
+        String description = request.getDescription();
+        Double basePrice = request.getBasePrice();
 
-        // Attach each variant back to merch
-        merchVariants.forEach(variant -> variant.setMerch(merch));
-        merch.setMerchVariantList(merchVariants);
+        // Validate merch fields
+        if (merchName == null || merchName.trim().isEmpty()) {
+            throw new InvalidRequestException("Merchandise name is required");
+        }
+        if (merchType == null) {
+            throw new InvalidRequestException("Merchandise type is required");
+        }
+        if (description == null || description.trim().isEmpty()) {
+            throw new InvalidRequestException("Description is required");
+        }
 
-        // Step 3: Save entity
+        // Check duplicate name
+        if (merchRepository.existsByMerchName(merchName)) {
+            throw new MerchAlreadyExistException("Merch name already exists");
+        }
+
+        // PHASE 1: Create base Merch entity
+        Merch merch = Merch.builder()
+                .merchName(merchName)
+                .description(description)
+                .merchType(merchType)
+                .basePrice(basePrice)
+                .s3ImageKey("placeholder")
+                .build();
+
         Merch savedMerch = merchRepository.save(merch);
 
-        // Step 4: Convert back to response DTO
-        MerchResponseDTO responseDTO = merchMapper.toResponseDTO(savedMerch);
-
-        // Fill in the variants manually using MerchVariantMapper
-        List<MerchVariantResponseDTO> variantResponseDTOs = savedMerch.getMerchVariantList()
-            .stream()
-            .map(merchVariantMapper::toResponseDTO)
-            .toList();
-
-        responseDTO.setVariants(variantResponseDTOs);
-
-        return responseDTO;
-    }
-
-
+        // Upload merch image if provided
+        if (request.getMerchImage() != null && !request.getMerchImage().isEmpty()) {
+            String s3ImageKey = s3Service.uploadFile(request.getMerchImage(), savedMerch.getMerchId(), "merch");
+            savedMerch.setS3ImageKey(s3ImageKey);
+            savedMerch = merchRepository.save(savedMerch);
+        }
     
-    @Override
-    public List<MerchResponseDTO> getAllMerch() {
-        return merchRepository.findAll()
-                .stream()
-                .map(merchMapper::toResponseDTO)
-                .toList();
+        // PHASE 2 & 3: Process variants and items in batch
+        List<MerchVariantRequestDTO> variants = request.getMerchVariantRequestDto();
+        if (variants == null || variants.isEmpty()) {
+            throw new InvalidRequestException("At least one variant is required");
+        }
+
+        for (MerchVariantRequestDTO variantDto : variants) {
+            if(merchType == MerchType.CLOTHING) {
+                // For clothing, either color or design must be provided
+                if ((variantDto.getColor() == null || variantDto.getColor().trim().isEmpty())
+                    && (variantDto.getDesign() == null || variantDto.getDesign().trim().isEmpty())) {
+                    throw new InvalidRequestException("Either color or design is required for clothing variants");
+                }
+            } else {
+                // For non-clothing, design is required
+                if (variantDto.getDesign() == null || variantDto.getDesign().trim().isEmpty()) {
+                    throw new InvalidRequestException("Design is required for non-clothing variants");
+                }
+            }
+
+            // Validate items
+            List<MerchVariantItemRequestDTO> items = variantDto.getVariantItems();
+            if (items == null || items.isEmpty()) {
+                throw new InvalidRequestException("At least one item (size/price/stock) is required for each variant");
+            }
+
+            // Create variant with items passed directly (all saved in batch within service)
+            merchVariantService.addVariantToMerch(savedMerch.getMerchId(), variantDto);
+        }
+
+        // Reload merch with all variants and items, then build complete response
+        Merch finalMerch = merchRepository.findById(savedMerch.getMerchId())
+                .orElseThrow(() -> new MerchNotFoundException("Merch not found"));
+
+        return merchMapper.toDetailedResponseDTO(finalMerch);
     }
 
     @Override
-    public MerchResponseDTO getMerchById(Long id) {
+    @Cacheable(cacheNames = "allMerchs")
+    public List<MerchDetailedResponseDTO> getAllMerch() {
+        List<MerchDetailedResponseDTO> allMerch = merchRepository.findAll().stream()
+                .map(merchMapper::toDetailedResponseDTO)
+                .collect(Collectors.toList());
+
+        String studentId = studentService.getCurrentStudentId();
+        if (studentId != null) {
+            // combine membership checks into single boolean
+            boolean shouldExcludeMembership = studentMembershipRepository.hasActiveMembership(studentId)
+                    || cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP);
+
+            if (shouldExcludeMembership) {
+                allMerch.removeIf(m -> m.getMerchType() == MerchType.MEMBERSHIP);
+            }
+        }
+        return allMerch;
+    }
+
+    @Override
+    @Cacheable(cacheNames = "merchSummaries")
+    public List<MerchSummaryResponseDTO> getAllMerchSummaries() {
+        List<MerchSummaryResponseDTO> summaries = merchRepository.findAllSummaries();
+        String studentId = studentService.getCurrentStudentId();
+        
+        if (studentId != null) {
+            // combine both checks into single boolean: if student has active membership OR membership in cart
+            boolean shouldExcludeMembership = studentMembershipRepository.hasActiveMembership(studentId) 
+                    || cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP);
+
+            if (shouldExcludeMembership) {
+                return summaries.stream()
+                    .filter(m -> m.getMerchType() != MerchType.MEMBERSHIP)
+                    .toList();
+            }
+        }
+        return summaries;
+    }
+
+    @Override
+    @Cacheable(cacheNames = "merch", key = "#id")
+    public MerchDetailedResponseDTO getMerchById(Long id) {
         Merch merch = merchRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Merch not found with id: " + id));
-        return merchMapper.toResponseDTO(merch);
+                .orElseThrow(() -> new MerchNotFoundException("Merch not found with id: " + id));
+        return merchMapper.toDetailedResponseDTO(merch);
+    }
+
+    @Override
+    @Cacheable(cacheNames = "merch", key = "#merchType.toString()")
+    public List<MerchSummaryResponseDTO> getMerchByType(MerchType merchType) {
+        if (merchType == null) {
+            throw new InvalidRequestException("Merch type is required");
+        }
+
+        String studentId = studentService.getCurrentStudentId();
+        if (studentId != null && merchType == MerchType.MEMBERSHIP) {
+            // combine membership checks into single boolean
+            boolean shouldExcludeMembership = studentMembershipRepository.hasActiveMembership(studentId)
+                    || cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP);
+            
+            if (shouldExcludeMembership) {
+                return List.of();
+            }
+        }
+
+        return merchRepository.findAllSummaryByType(merchType);
     }
 
     @Override
     @Transactional
-    public Map<String, Object> putMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) {
-        // find the merch by id
+    @CacheEvict(cacheNames = {"allMerchs", "merchSummaries", "merch"}, allEntries = true)
+    public MerchDetailedResponseDTO putMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) throws IOException {
+        // Find merch by ID
         Merch foundMerch = merchRepository.findById(merchId)
-                            .orElseThrow(() -> new MerchNotFoundException("Merch Not Found"));
-        
-        // get the new values
-        String newMerchName = merchUpdateRequestDTO.getMerchName();
-        String newMerchDescription = merchUpdateRequestDTO.getDescription();
-        MerchType newMerchType = merchUpdateRequestDTO.getMerchType();
-        
+                .orElseThrow(() -> new MerchNotFoundException("Merch not found with id: " + merchId));
+
         // Validate required fields
-        if (newMerchName == null || newMerchName.trim().isEmpty() 
-            || newMerchDescription == null || newMerchDescription.trim().isEmpty() 
-            || newMerchType == null) {
-            throw new InvalidRequestException("Invalid Credential");
+        if (merchUpdateRequestDTO.getMerchName() == null || merchUpdateRequestDTO.getMerchName().trim().isEmpty()
+            || merchUpdateRequestDTO.getDescription() == null || merchUpdateRequestDTO.getDescription().trim().isEmpty()
+            || merchUpdateRequestDTO.getMerchType() == null) {
+            throw new InvalidRequestException("Invalid credential");
         }
-    
-        // check if the merch name is already exist
-        if (!foundMerch.getMerchName().equals(newMerchName) 
-            && merchRepository.existsByMerchName(newMerchName)) {
-            throw new MerchAlreadyExistException("Merch Name Already Exist");
+
+        // Check for duplicate name (excluding current merch)
+        if (!foundMerch.getMerchName().equals(merchUpdateRequestDTO.getMerchName())
+            && merchRepository.existsByMerchName(merchUpdateRequestDTO.getMerchName())) {
+            throw new MerchAlreadyExistException("Merch name already exists");
         }
-        
-        // set the new values
-        foundMerch.setMerchName(newMerchName);
-        foundMerch.setMerchType(newMerchType);
-        foundMerch.setDescription(newMerchDescription);
 
+        // Update fields
+        foundMerch.setMerchName(merchUpdateRequestDTO.getMerchName());
+        foundMerch.setDescription(merchUpdateRequestDTO.getDescription());
+        foundMerch.setMerchType(merchUpdateRequestDTO.getMerchType());
 
-        // save the merch
-        merchRepository.save(foundMerch);
-        
-        // return the response
-
-        return Map.of("message", "Merch Updated Successfully",
-                        "timestamp", LocalDateTime.now(),
-                        "status", 200);    
-        }
+        Merch updated = merchRepository.save(foundMerch);
+        return merchMapper.toDetailedResponseDTO(updated);
+    }
 
     @Override
     @Transactional
-    public Map<String, Object> patchMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) {
-        // find the merch by id
+    @CacheEvict(cacheNames = {"allMerchs", "merchSummaries", "merch"}, allEntries = true)
+    public MerchDetailedResponseDTO patchMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) throws IOException {
+        // Find merch by ID
         Merch foundMerch = merchRepository.findById(merchId)
-                            .orElseThrow(() -> new MerchNotFoundException("Merch Not Found"));
+                .orElseThrow(() -> new MerchNotFoundException("Merch not found with id: " + merchId));
+
+        // Partial updates
+        if (merchUpdateRequestDTO.getMerchName() != null && !merchUpdateRequestDTO.getMerchName().trim().isEmpty()) {
+            if (!foundMerch.getMerchName().equals(merchUpdateRequestDTO.getMerchName())
+                && merchRepository.existsByMerchName(merchUpdateRequestDTO.getMerchName())) {
+                throw new MerchAlreadyExistException("Merch name already exists");
+            }
+            foundMerch.setMerchName(merchUpdateRequestDTO.getMerchName());
+        }
+        if (merchUpdateRequestDTO.getDescription() != null && !merchUpdateRequestDTO.getDescription().trim().isEmpty()) {
+            foundMerch.setDescription(merchUpdateRequestDTO.getDescription());
+        }
+        if (merchUpdateRequestDTO.getMerchType() != null) {
+            foundMerch.setMerchType(merchUpdateRequestDTO.getMerchType());
+        }
+
+        Merch updated = merchRepository.save(foundMerch);
+        return merchMapper.toDetailedResponseDTO(updated);    
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(cacheNames = {"allMerchs", "merchSummaries", "merch"}, allEntries = true)
+    public void deleteMerch(Long merchId) {
+        // Find merch by ID
+        Merch merch = merchRepository.findById(merchId)
+                .orElseThrow(() -> new MerchNotFoundException("Merch not found with id: " + merchId));
+
+        // soft delete: mark as inactive instead of hard delete
+        merch.setIsActive(false);
+        merchRepository.save(merch);
+    }
+
+    @Override
+    public Page<MerchDetailedResponseDTO> getArchivedMerch(Pageable pageable) {
+        /* retrieve archived merch paginated with eager loading of variants */
+        Page<Merch> archivedMerch = merchRepository.findArchivedMerch(pageable);
+        return archivedMerch.map(merchMapper::toDetailedResponseDTO);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(cacheNames = {"allMerchs", "merchSummaries", "merch"}, allEntries = true)
+    public MerchDetailedResponseDTO revertMerch(Long merchId) {
+        /* revert archived merch back to active status */
+        Merch merch = merchRepository.findByIdAndIsInactive(merchId)
+                .orElseThrow(() -> new MerchNotFoundException("Archived merch not found with id: " + merchId));
         
 
-        // get the new values
-        String newMerchName = merchUpdateRequestDTO.getMerchName();
-        String newMerchDescription = merchUpdateRequestDTO.getDescription();
-        MerchType newMerchType = merchUpdateRequestDTO.getMerchType();
-        
-
-        // set the new values
-        if (newMerchName != null && !newMerchName.trim().isEmpty()) {
-            foundMerch.setMerchName(newMerchName);
-        }
-        if (newMerchDescription != null && !newMerchDescription.trim().isEmpty()) {
-            foundMerch.setDescription(newMerchDescription);
-        }
-        if (newMerchType != null && !newMerchType.toString().isEmpty()) {
-            foundMerch.setMerchType(newMerchType);
+        if (merch.getIsActive()) {
+            throw new InvalidRequestException("Merch with id " + merchId + " is already active");
         }
 
-
-        // save the merch
-        merchRepository.save(foundMerch);
-
-
-        // return the response
-        return Map.of("message", "Merch Updated Successfully",
-                        "timestamp", LocalDateTime.now(),
-                        "status", 200);
+        merch.setIsActive(true);
+        Merch reverted = merchRepository.save(merch);
+        return merchMapper.toDetailedResponseDTO(reverted);
     }
 }

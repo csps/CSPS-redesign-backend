@@ -6,16 +6,12 @@ import java.util.Map;
 
 import javax.crypto.SecretKey;
 
-import org.csps.backend.domain.dtos.request.SignInCredentialRequestDTO;
-import org.csps.backend.domain.entities.Admin;
-import org.csps.backend.domain.entities.Student;
 import org.csps.backend.domain.entities.UserAccount;
+import org.csps.backend.domain.enums.AdminPosition;
 import org.csps.backend.domain.enums.UserRole;
-import org.csps.backend.service.AdminService;
-import org.csps.backend.service.StudentService;
-import org.csps.backend.service.UserAccountService;
+import org.csps.backend.repository.AdminRepository;
+import org.csps.backend.repository.StudentRepository;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Claims;
@@ -31,12 +27,10 @@ public class JwtService {
     @Value("${csps.jwtToken.secretKey}")
     private String secretKey; // Base64-encoded secret key
 
-    @Value("${csps.jwtAccessToken.expireMs}")
-    private long jwtAccessTokenExpirationMs; // Expiration time in ms
+    private long jwtAccessTokenExpirationMs = 90000000; // Expiration time in ms
 
-    private final UserAccountService userAccountService;
-    private final StudentService studentService;
-    private final AdminService adminService;
+    private final StudentRepository studentRepository;
+    private final AdminRepository adminRepository;
 
     // Decode secret key into HMAC-SHA key
     private SecretKey getSignInKey() {
@@ -67,34 +61,49 @@ public class JwtService {
         return getExpiration(token).before(new Date());
     }
 
+
+    public String getStudentIdFromToken(String token) {
+        return extractAllClaims(token).get("studentId", String.class);
+    }
+
     // Core method: build JWT with claims depending on role (Student/Admin)
-    private String generateAccessToken(Map<String, Object> customClaim, SignInCredentialRequestDTO studentRequest) {
-        // Load account
-        UserAccount account = userAccountService.findByUsername(studentRequest.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("UserAccount not found"));
+    private String generateAccessToken(Map<String, Object> customClaim, UserAccount user, String domainId, String position) {
+        /* Generates JWT with optional domainId/position to avoid extra DB queries during login */
 
         // Add base claims
-        customClaim.put("username", account.getUsername());
-        customClaim.put("role", account.getRole().toString());
-        customClaim.put("profileId", account.getUserProfile().getUserId());
+        customClaim.put("role", user.getRole().toString());
+
+
+        boolean middleNameExists = user.getUserProfile().getMiddleName() != null && !user.getUserProfile().getMiddleName().isEmpty();
+        String fullName = user.getUserProfile().getFirstName() + (middleNameExists ? " " + user.getUserProfile().getMiddleName() : "") + " " + user.getUserProfile().getLastName();
+        customClaim.put("fullName", fullName);
 
         // Add role-specific claims
-        if (account.getRole() == UserRole.STUDENT) {
-            Student student = studentService.findByAccountId(account.getUserAccountId())
-                    .orElseThrow(() -> new RuntimeException("Student record not found"));
-            customClaim.put("studentId", student.getStudentId());
-            customClaim.put("yearLevel", student.getYearLevel());
-        } else if (account.getRole() == UserRole.ADMIN) {
-            Admin admin = adminService.findByAccountId(account.getUserAccountId())
-                    .orElseThrow(() -> new RuntimeException("Admin record not found"));
-            customClaim.put("adminId", admin.getAdminId());
-            customClaim.put("position", admin.getPosition().name());
+        if (user.getRole() == UserRole.STUDENT) {
+            if (domainId != null) {
+                customClaim.put("studentId", domainId);
+            } else {
+                /* efficient query to get student ID directly */
+                String studentId = studentRepository.findStudentIdByUserAccountId(user.getUserAccountId())
+                        .orElseThrow(() -> new RuntimeException("Student record not found"));
+                customClaim.put("studentId", studentId);
+            }
+        } else if (user.getRole() == UserRole.ADMIN) {
+            if (position != null) {
+                customClaim.put("position", position);
+            } else {
+                /* efficient query to get admin position directly */
+                AdminPosition adminPosition = adminRepository.findPositionByUserAccountId(user.getUserAccountId())
+                        .orElseThrow(() -> new RuntimeException("Admin record not found"));
+                customClaim.put("position", adminPosition.name());
+            }
         }
 
+    
         // Generate and sign token
         return Jwts.builder()
                 .claims(customClaim)
-                .subject(String.valueOf(account.getUserAccountId())) // subject = accountId
+                .subject(String.valueOf(user.getUserAccountId())) // subject = accountId
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtAccessTokenExpirationMs))
                 .signWith(getSignInKey())
@@ -102,17 +111,23 @@ public class JwtService {
     }
 
     // Generate token with empty claims
-    public String generateAccessToken(SignInCredentialRequestDTO studentRequest) {
-        return generateAccessToken(new HashMap<>(), studentRequest);
+    public String generateAccessToken(UserAccount user) {
+        return generateAccessToken(new HashMap<>(), user, null, null);
+    }
+
+    // Generate token with optional domainId/position to avoid extra queries during login
+    public String generateAccessToken(UserAccount user, String domainId, String position) {
+        return generateAccessToken(new HashMap<>(), user, domainId, position);
+    }
+
+    public Long getUserIdFromToken(String token) {
+        return extractUsernameId(token);
     }
 
     // Validate token: check subject matches and not expired
-    public Boolean isTokenValid(String token, SignInCredentialRequestDTO studentRequest) {
+    public Boolean isTokenValid(String token, UserAccount user) {
         final Long usernameId = extractUsernameId(token);
 
-        UserAccount userEntity = userAccountService.findByUsername(studentRequest.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
-        return (usernameId.equals(userEntity.getUserAccountId()) && !isTokenExpired(token));
+        return (usernameId.equals(user.getUserAccountId()) && !isTokenExpired(token));
     }
 }

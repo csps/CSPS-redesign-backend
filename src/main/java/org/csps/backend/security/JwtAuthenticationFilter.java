@@ -1,6 +1,5 @@
 package org.csps.backend.security;
 
-import org.csps.backend.domain.dtos.request.SignInCredentialRequestDTO;
 import org.csps.backend.domain.entities.UserAccount;
 import org.csps.backend.service.UserAccountService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -29,18 +28,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, java.io.IOException {
 
-        // Extract Authorization header
-        String authHeader = request.getHeader("Authorization");
-
-        // Skip if no header or doesn't start with Bearer
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+        // Initialize token
+        String accessToken = null;        
 
         try {
-            final String token = authHeader.substring(7).trim(); // Extract token
-            final Long userId = jwtService.extractUsernameId(token); // Parse userId from token
+            // Extract token from Authorization header
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                accessToken = authHeader.substring(7); // Remove "Bearer " prefix
+            }
+            
+            if (accessToken == null) {
+                // No token found, continue filter chain
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            final Long userId = jwtService.extractUsernameId(accessToken); // Parse userId from token
 
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
@@ -50,35 +54,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UserAccount user = userService.findById(userId)
                         .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-                // Build credential DTO for token validation
-                SignInCredentialRequestDTO requestCredential =
-                        new SignInCredentialRequestDTO(user.getUsername(), user.getPassword());
-
                 // Validate token
-                if (!jwtService.isTokenValid(token, requestCredential)) {
+                if (!jwtService.isTokenValid(accessToken, user)) {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.getWriter().write("Invalid token");
                     return;
                 }
-                
-                // If token is valid
 
+                // If token is valid
+                
                 // Load principal (with role + authorities)
                 UserPrincipal userPrincipal =
-                        (UserPrincipal) customUserDetailsService.loadUserByUsername(user.getUsername());
-
+                (UserPrincipal) customUserDetailsService.loadUserByUsername(user.getUsername());
+                
                 // Decide which domainId to use (Student/Admin)
-                Object domainId = switch (userPrincipal.getRole()) {
-                    case "STUDENT" -> userPrincipal.getStudentId();
-                    case "ADMIN" -> userPrincipal.getAdminId();
-                    default -> throw new RuntimeException("Role not recognized");
-                };
-
+                Object domainId;
+                if ("STUDENT".equalsIgnoreCase(userPrincipal.getRole())) {
+                    domainId = userPrincipal.getStudentId();
+                } else if ("ADMIN".equalsIgnoreCase(userPrincipal.getRole())) {
+                    domainId = userPrincipal.getAdminId();
+                } else {
+                    throw new RuntimeException("Role not recognized: " + userPrincipal.getRole());
+                }                
                 // Build authentication object
                 UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
+                new UsernamePasswordAuthenticationToken(
                                 domainId,
-                                null,
+                                userId,
                                 userPrincipal.getAuthorities()
                         );
 

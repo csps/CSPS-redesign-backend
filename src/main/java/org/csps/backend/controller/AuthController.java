@@ -2,21 +2,29 @@ package org.csps.backend.controller;
 
 import java.util.Map;
 
+import org.csps.backend.domain.dtos.request.ChangePasswordRequestDTO;
 import org.csps.backend.domain.dtos.request.SignInCredentialRequestDTO;
+import org.csps.backend.domain.dtos.request.UpdateEmailRequestDTO;
 import org.csps.backend.domain.dtos.response.AdminResponseDTO;
 import org.csps.backend.domain.dtos.response.AuthResponseDTO;
+import org.csps.backend.domain.dtos.response.GlobalResponseBuilder;
 import org.csps.backend.domain.dtos.response.StudentResponseDTO;
+import org.csps.backend.domain.entities.EmailVerification;
 import org.csps.backend.domain.entities.UserAccount;
 import org.csps.backend.security.JwtService;
 import org.csps.backend.service.AdminService;
+import org.csps.backend.service.EmailVerificationService;
 import org.csps.backend.service.RefreshTokenService;
 import org.csps.backend.service.StudentService;
 import org.csps.backend.service.UserAccountService;
+import org.csps.backend.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,58 +32,124 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
-
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
-    private final UserAccountService userService;
+
+    private final UserAccountService userAccountService;
+    private final UserService userService;
+    private final EmailVerificationService emailVerificationService; // Inject EmailVerificationService
 
     private final RefreshTokenService refreshTokenService;
     private final JwtService jwtService;
     private final StudentService studentService;
     private final AdminService adminService;
+    private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody SignInCredentialRequestDTO request) {
-        // get username from request
-        String usernameRequest = request.getUsername();
+    public ResponseEntity<GlobalResponseBuilder<AuthResponseDTO>> login(@Valid @RequestBody SignInCredentialRequestDTO signInRequest) {
+        String studentId = signInRequest.getStudentId();
+        
+        UserAccount user = userAccountService.findByUsername(studentId)
+                .orElse(null);
 
-        // find user by username
-        UserAccount user = userService.findByUsername(usernameRequest).
-                                orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
+        boolean isCorrectPassword = user != null && passwordEncoder.matches(signInRequest.getPassword(), user.getPassword());
 
-        // check if password is correct
-        if (!user.getPassword().equals(request.getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
-        }        
+        if (!isCorrectPassword) {
+            return GlobalResponseBuilder.buildResponse(
+                "Invalid credentials",
+                null,
+                HttpStatus.UNAUTHORIZED
+            );
+        }
+        
 
-        // generate token
-        String token = jwtService.generateAccessToken(request);
-        String refreshToken = refreshTokenService.createRefreshToken(user.getUserAccountId()).getRefreshToken();
+        String accessToken = jwtService.generateAccessToken(user);
 
-        // return token and refresh token
-        return ResponseEntity.ok().body(new AuthResponseDTO(token, refreshToken));
+        // Return both tokens in response body - client should store in memory or secure storage
+        AuthResponseDTO authResponse = AuthResponseDTO.builder()
+                .accessToken(accessToken)
+                .build();
+
+        return GlobalResponseBuilder.buildResponse(
+            "Login successful",
+            authResponse,
+            HttpStatus.OK
+        );
     }
 
+    // logout
+    @PostMapping("/logout")
+    public ResponseEntity<GlobalResponseBuilder<String>> logout(@RequestBody(required = false) Map<String, String> requestBody) {
+        String refreshToken = null;
+        if (requestBody != null && requestBody.containsKey("refreshToken")) {
+            refreshToken = requestBody.get("refreshToken");
+        }
+        
+        // Delete refresh token from database if it exists
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            refreshTokenService.findByRefreshToken(refreshToken)
+                .ifPresent(refreshTokenService::deleteRefreshToken);
+        }
+        
+        return GlobalResponseBuilder.buildResponse(
+            "Logout successful",
+            null,
+            HttpStatus.OK
+        );
+    }
+
+    // change password
+    @PostMapping("/change-password")
+    public ResponseEntity<GlobalResponseBuilder<String>> changePassword(
+        Authentication authentication,
+        @Valid @RequestBody ChangePasswordRequestDTO requestDTO
+    ) {
+
+        Long userId = (Long) authentication.getCredentials();  // Cast to Long
+
+        userService.changePassword(userId, requestDTO);
+        
+        return GlobalResponseBuilder.buildResponse(
+            "Password changed successfully",
+            null,
+            HttpStatus.OK
+        );
+    }
 
     // refresh token
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestBody Map<String, String> payload) {
-        // get refresh token from request
-        String requestToken = payload.get("refreshToken");
-
-        // check if refresh token is missing
+    public ResponseEntity<GlobalResponseBuilder<AuthResponseDTO>> refresh(
+        @RequestBody Map<String, String> requestBody
+    ) {
+        String requestToken = requestBody.get("refreshToken");
         if (requestToken == null || requestToken.isBlank()) {
-            return ResponseEntity.badRequest().body("Missing refresh token");
+            return GlobalResponseBuilder.buildResponse(
+                "Refresh token is missing",
+                null,
+                HttpStatus.BAD_REQUEST
+            );
         }
 
-        // refresh token
-        return refreshTokenService.refreshAccessToken(requestToken)
-                .map(newAccessToken -> ResponseEntity.ok(Map.of("accessToken", newAccessToken)))
-                .orElseGet(() ->ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid or expired refresh token")));
+        var result = refreshTokenService.refreshAccessToken(requestToken);
+        if (result.isPresent()) {
+            String newAccessToken = result.get();
+            
+            return GlobalResponseBuilder.buildResponse(
+                "Access token refreshed successfully",
+                new AuthResponseDTO(newAccessToken),
+                HttpStatus.OK
+            );
+        } else {
+            return GlobalResponseBuilder.buildResponse(
+                "Invalid or expired refresh token",
+                null,
+                HttpStatus.UNAUTHORIZED
+            );
+        }
     }
 
     // get student profile
@@ -98,4 +172,47 @@ public class AuthController {
         return ResponseEntity.ok(admin);
     }
 
+    /**
+     * Initiates the email update verification process by sending a code to the user's current email.
+     * Requires the user to be authenticated and their account to be verified.
+     */
+    @PostMapping("/email/update/initiate")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<GlobalResponseBuilder<EmailVerification>> initiateEmailUpdate(
+            Authentication authentication,
+            @RequestBody Map<String, String> requestBody) {
+        // Get userAccountId from authentication
+        Long userAccountId = (Long) authentication.getCredentials();
+        String newEmail = requestBody.get("newEmail");
+
+        // Call service
+        EmailVerification emailVerification = emailVerificationService.initiateEmailUpdate(userAccountId, newEmail);
+
+        return GlobalResponseBuilder.buildResponse(
+                "Verification code sent to your current email for update to: " + newEmail,
+                emailVerification,
+                HttpStatus.OK);
+    }
+
+    /**
+     * Confirms the email update using the provided verification code.
+     * Requires the user to be authenticated.
+     */
+    @PostMapping("/email/update/confirm")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<GlobalResponseBuilder<EmailVerification>> confirmEmailUpdate(
+            Authentication authentication,
+            @Valid @RequestBody UpdateEmailRequestDTO requestDTO) {
+        // Get userAccountId from authentication
+        Long userAccountId = (Long) authentication.getCredentials();
+
+        // Call service
+        EmailVerification emailVerification = emailVerificationService.confirmEmailUpdate(
+                userAccountId, requestDTO.getNewEmail(), requestDTO.getVerificationCode());
+
+        return GlobalResponseBuilder.buildResponse(
+                "Email updated successfully to: " + requestDTO.getNewEmail(),
+                emailVerification,
+                HttpStatus.OK);
+    }
 }

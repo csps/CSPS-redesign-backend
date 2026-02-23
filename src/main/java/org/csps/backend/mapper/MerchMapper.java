@@ -1,7 +1,8 @@
 package org.csps.backend.mapper;
 
 import org.csps.backend.domain.dtos.request.MerchRequestDTO;
-import org.csps.backend.domain.dtos.response.MerchResponseDTO;
+import org.csps.backend.domain.dtos.response.MerchDetailedResponseDTO;
+import org.csps.backend.domain.dtos.response.MerchSummaryResponseDTO;
 import org.csps.backend.domain.entities.Merch;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -10,7 +11,9 @@ import org.mapstruct.Mapping;
 public interface MerchMapper {
     // Entity -> DTO
     @Mapping(target = "variants", source = "merchVariantList")
-    MerchResponseDTO toResponseDTO (Merch merch);
+    MerchDetailedResponseDTO toDetailedResponseDTO (Merch merch);
+
+    
 
     // DTO -> Entity
     @Mapping(target = "merchVariantList", source = "merchVariantRequestDto")

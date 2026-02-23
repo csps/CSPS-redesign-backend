@@ -24,10 +24,10 @@ public class CartItem {
     @JoinColumn(name = "student_id", nullable = false)
     private Cart cart;
 
-    @MapsId("merchVariantId")
     @ManyToOne
-    @JoinColumn(name = "merch_variant_id", nullable = false)
-    private MerchVariant merchVariant;
+    @MapsId("merchVariantItemId") // Change this to the Item (SKU)
+    @JoinColumn(name = "merch_variant_item_id", nullable = false)
+    private MerchVariantItem merchVariantItem;
 
     private int quantity;
 }

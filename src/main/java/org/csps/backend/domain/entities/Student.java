@@ -1,20 +1,26 @@
 package org.csps.backend.domain.entities;
 
+import java.util.List;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Data
 @Entity
-@Table
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -26,7 +32,7 @@ public class Student {
 
     @Column(nullable = false)
     private Byte yearLevel;
-
+    
     @OneToOne
     @JoinColumn(name = "user_account_id")
     private UserAccount userAccount;

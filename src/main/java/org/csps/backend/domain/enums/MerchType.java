@@ -4,5 +4,6 @@ public enum MerchType {
     CLOTHING,
     PIN,
     STICKER,
-    KEYCHAIN
+    KEYCHAIN,
+    MEMBERSHIP
 }
