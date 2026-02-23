@@ -96,6 +96,13 @@ public class StudentServiceImpl implements StudentService {
                .map(studentMapper::toResponseDTO);
    }
 
+   // Search Students by ID or name with optional year level filter
+   @Override
+   public Page<StudentResponseDTO> searchStudents(String search, Byte yearLevel, Pageable pageable) {
+       return studentRepository.searchStudents(search, yearLevel, pageable)
+               .map(studentMapper::toResponseDTO);
+   }
+
 
    // Get Student By Id
    @Override

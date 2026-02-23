@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 public interface StudentService {
    StudentResponseDTO createStudent(StudentRequestDTO studentRequestDTO);
    public Page<StudentResponseDTO> getAllStudents(Pageable pageable);
+   public Page<StudentResponseDTO> searchStudents(String search, Byte yearLevel, Pageable pageable);
    StudentResponseDTO getStudentProfile(String studentId);
    Optional<Student> findByAccountId(Long accountId);
    Optional<StudentResponseDTO> findById(String id);
