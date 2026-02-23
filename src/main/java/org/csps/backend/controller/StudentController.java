@@ -43,9 +43,18 @@ public class StudentController {
    @PreAuthorize("hasRole('ADMIN')")
    public ResponseEntity<Page<StudentResponseDTO>> getAllStudents(
            @RequestParam(defaultValue = "0") int page,
-           @RequestParam(defaultValue = "7") int size) {
+           @RequestParam(defaultValue = "7") int size,
+           @RequestParam(required = false) String search,
+           @RequestParam(required = false) Byte yearLevel) {
        Pageable pageable = PageRequest.of(page, size);
-       Page<StudentResponseDTO> students = studentService.getAllStudents(pageable);
+       Page<StudentResponseDTO> students;
+       if (search != null && !search.isBlank()) {
+           students = studentService.searchStudents(search.trim(), yearLevel, pageable);
+       } else if (yearLevel != null) {
+           students = studentService.searchStudents("", yearLevel, pageable);
+       } else {
+           students = studentService.getAllStudents(pageable);
+       }
        return ResponseEntity.ok(students);
    }
 

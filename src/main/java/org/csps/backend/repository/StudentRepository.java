@@ -18,6 +18,14 @@ public interface StudentRepository extends JpaRepository<Student, String> {
     @EntityGraph(attributePaths = {"userAccount", "userAccount.userProfile"})
     Page<Student> findAll(Pageable pageable);
     
+    /* search students by studentId or name with optional year level filter */
+    @Query("SELECT s FROM Student s LEFT JOIN FETCH s.userAccount ua LEFT JOIN FETCH ua.userProfile up " +
+           "WHERE (s.studentId LIKE CONCAT('%', :search, '%') OR " +
+           "up.firstName LIKE CONCAT('%', :search, '%') OR " +
+           "up.lastName LIKE CONCAT('%', :search, '%')) " +
+           "AND (:yearLevel IS NULL OR s.yearLevel = :yearLevel)")
+    Page<Student> searchStudents(@Param("search") String search, @Param("yearLevel") Byte yearLevel, Pageable pageable);
+    
     @Query("SELECT s FROM Student s LEFT JOIN FETCH s.userAccount ua LEFT JOIN FETCH ua.userProfile WHERE s.studentId = :studentId")
     Optional<Student> findByStudentId(@Param("studentId") String studentId);
     
