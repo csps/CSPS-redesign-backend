@@ -14,9 +14,6 @@ services:
       - AWS_SECRET_ACCESS_KEY=your-aws-secret-access-key
       - AWS_REGION=aws-region-1 # put your AWS region here
       - AWS_S3_BUCKET=example-bucket-name
-      - CLOUDFRONT_DOMAIN=EXAMPLECLOUDFRONTDOMAIN.cloudfront.net
-      - CLOUDFRONT_KEY_PAIR_ID=CLOUDFRONTKEYPAIRID
-      - CLOUDFRONT_PRIVATE_KEY_PATH=PATH/TO/CLOUDFRONT/PRIVATE/KEY.pem
       - USERNAME_FORMAT=YOUR_USERNAME_PREFIX-
       - PASSWORD_FORMAT=YOUR_PASSWORD_PREFIX@
       - ADMIN_USERNAME_FORMAT=YOUR_ADMIN_USERNAME_PREFIX-
@@ -28,6 +25,7 @@ services:
       - SMTP_PORT=587
       - SMTP_USERNAME=your_email@gmail.com
       - SMTP_PASSWORD=your_app_password
+      - FRONTEND_URL = FRONTEND_URL
     tty: true
     stdin_open: true
     depends_on: # Remove this section if not using the local database service
