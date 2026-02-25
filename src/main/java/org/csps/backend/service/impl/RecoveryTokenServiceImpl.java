@@ -30,7 +30,7 @@ public class RecoveryTokenServiceImpl implements RecoveryTokenService {
     private final EmailService  emailService;
 
     @Value("${FRONTEND_URL}")
-    private final String frontendUrl;
+    private String frontendUrl;
     
     @Value("${csps.recovery.token.expiration.minutes:60}")
     private long tokenExpirationMinutes;
