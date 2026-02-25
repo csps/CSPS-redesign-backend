@@ -1,5 +1,6 @@
 package org.csps.backend.configs;
 import org.csps.backend.security.JwtAuthenticationFilter;
+import org.csps.backend.security.RateLimitingFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -20,9 +21,11 @@ import jakarta.servlet.http.HttpServletResponse;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
+    private final RateLimitingFilter rateLimitingFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtFilter, RateLimitingFilter rateLimitingFilter) {
         this.jwtFilter = jwtFilter;
+        this.rateLimitingFilter = rateLimitingFilter;
     }
 
     @Bean
@@ -43,6 +46,7 @@ public class SecurityConfig {
                     response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
                 })
             )
+            .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

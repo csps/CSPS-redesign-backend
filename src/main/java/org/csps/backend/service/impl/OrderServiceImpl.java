@@ -20,6 +20,7 @@ import org.csps.backend.repository.OrderRepository;
 import org.csps.backend.repository.StudentRepository;
 import org.csps.backend.repository.specification.OrderSpecification;
 import org.csps.backend.service.CartItemService;
+import org.csps.backend.service.MerchService;
 import org.csps.backend.service.OrderItemService;
 import org.csps.backend.service.OrderService;
 import org.springframework.data.domain.Page;
@@ -37,8 +38,12 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
     private final StudentRepository studentRepository;
+
+
     private final OrderItemService orderItemService;
     private final CartItemService cartItemService;
+
+    private final MerchService merchService;
 
 
     @Override

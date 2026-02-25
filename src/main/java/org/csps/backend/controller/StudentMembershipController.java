@@ -34,7 +34,7 @@ public class StudentMembershipController {
     private final StudentMembershipService studentMembershipService;
 
     @PostMapping()
-    @PreAuthorize("hasRole('ADMIN_FINANCE')")
+    @PreAuthorize("hasRole('ADMIN_EXECUTIVE') or hasRole('ADMIN_FINANCE')")
     public ResponseEntity<StudentMembershipResponseDTO> createStudentMembership(@RequestBody StudentMembershipRequestDTO studentMembershipRequestDTO) {
         StudentMembershipResponseDTO createdMembership = studentMembershipService.createStudentMembership(studentMembershipRequestDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdMembership);

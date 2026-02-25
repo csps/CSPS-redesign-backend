@@ -28,6 +28,9 @@ public class RecoveryTokenServiceImpl implements RecoveryTokenService {
     private final RecoveryTokenRepository recoveryTokenRepository;
     private final UserProfileRepository userProfileRepository;
     private final EmailService  emailService;
+
+    @Value("${FRONTEND_URL}")
+    private final String frontendUrl;
     
     @Value("${csps.recovery.token.expiration.minutes:60}")
     private long tokenExpirationMinutes;
@@ -144,7 +147,7 @@ public class RecoveryTokenServiceImpl implements RecoveryTokenService {
      */
     private String buildRecoveryLink(String token) {
         /* This should match your frontend URL */
-        String baseUrl = "http://localhost:5173"; // Adjust to your frontend URL
+        String baseUrl = frontendUrl; // Adjust to your frontend URL
         return baseUrl + "/reset-password?token=" + token;
     }
 }

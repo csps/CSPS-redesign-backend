@@ -14,7 +14,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
-import org.csps.backend.exception.StudentNotParticipantException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -375,6 +374,18 @@ public class GlobalExceptionHandler {
         error.put("message", ex.getMessage());
 
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    // Handle email already exists
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.CONFLICT.value());
+        error.put("error", "Email Already Exists");
+        error.put("message", ex.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
 }
 

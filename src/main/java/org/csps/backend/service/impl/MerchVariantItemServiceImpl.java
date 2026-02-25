@@ -16,6 +16,7 @@ import org.csps.backend.mapper.MerchVariantItemMapper;
 import org.csps.backend.repository.MerchVariantItemRepository;
 import org.csps.backend.repository.MerchVariantRepository;
 import org.csps.backend.service.MerchVariantItemService;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;

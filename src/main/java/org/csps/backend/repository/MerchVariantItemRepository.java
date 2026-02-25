@@ -8,8 +8,10 @@ import org.csps.backend.domain.entities.MerchVariantItem;
 import org.csps.backend.domain.enums.ClothingSizing;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import jakarta.persistence.LockModeType;
 
 @Repository
 public interface MerchVariantItemRepository extends JpaRepository<MerchVariantItem, Long> {
@@ -38,4 +40,13 @@ public interface MerchVariantItemRepository extends JpaRepository<MerchVariantIt
     @EntityGraph(attributePaths = {"merchVariant", "merchVariant.merch"}, type = EntityGraph.EntityGraphType.FETCH)
     @Query("SELECT mvi FROM MerchVariantItem mvi WHERE mvi.merchVariant.merch.isActive = true ORDER BY mvi.stockQuantity ASC")
     List<MerchVariantItem> findTop5ByOrderByStockQuantityAsc();
+
+    /**
+     * Find by ID with pessimistic write lock.
+     * Prevents concurrent stock updates by acquiring database-level lock.
+     * Used during stock deduction to ensure thread-safe operations.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT mvi FROM MerchVariantItem mvi WHERE mvi.merchVariantItemId = :id")
+    Optional<MerchVariantItem> findByIdWithLock(Long id);
 }
