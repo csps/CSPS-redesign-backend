@@ -1,9 +1,14 @@
 package org.csps.backend.controller;
 
 import java.util.List;
+import java.util.Map;
 
+import org.csps.backend.domain.dtos.request.BulkStudentMembershipRequestDTO;
 import org.csps.backend.domain.dtos.request.StudentMembershipRequestDTO;
+import org.csps.backend.domain.dtos.request.StudentMembershipSearchDTO;
+import org.csps.backend.domain.dtos.response.MembershipRatioDTO;
 import org.csps.backend.domain.dtos.response.StudentMembershipResponseDTO;
+import org.csps.backend.domain.dtos.response.StudentResponseDTO;
 import org.csps.backend.service.StudentMembershipService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,7 +34,7 @@ public class StudentMembershipController {
     private final StudentMembershipService studentMembershipService;
 
     @PostMapping()
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN_FINANCE')")
     public ResponseEntity<StudentMembershipResponseDTO> createStudentMembership(@RequestBody StudentMembershipRequestDTO studentMembershipRequestDTO) {
         StudentMembershipResponseDTO createdMembership = studentMembershipService.createStudentMembership(studentMembershipRequestDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdMembership);
@@ -76,5 +81,147 @@ public class StudentMembershipController {
         Pageable pageable = PageRequest.of(page, size);
         Page<StudentMembershipResponseDTO> memberships = studentMembershipService.getStudentMembershipsPaginated(studentId, pageable);
         return ResponseEntity.ok(memberships);
+    }
+
+    /**
+     * Get all students with active memberships, paginated.
+     * Returns membership details with student profile info.
+     *
+     * @param page zero-based page index (default 0)
+     * @param size number of items per page (default 7)
+     * @return paginated list of active membership response DTOs
+     */
+    @GetMapping("/active/paginated")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<StudentMembershipResponseDTO>> getActiveMembersPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "7") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<StudentMembershipResponseDTO> activeMembers = studentMembershipService.getActiveMembersPaginated(pageable);
+        return ResponseEntity.ok(activeMembers);
+    }
+
+    /**
+     * Get all students who do NOT have an active membership (non-members), paginated.
+     * Returns student profile info without membership details.
+     *
+     * @param page zero-based page index (default 0)
+     * @param size number of items per page (default 7)
+     * @return paginated list of student response DTOs for non-members
+     */
+    @GetMapping("/inactive/paginated")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<StudentResponseDTO>> getInactiveMembersPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "7") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<StudentResponseDTO> inactiveMembers = studentMembershipService.getInactiveMembersPaginated(pageable);
+        return ResponseEntity.ok(inactiveMembers);
+    }
+
+    /**
+     * Get count of active members.
+     * Lightweight endpoint, no full page fetch.
+     *
+     * @return JSON object with "count" key
+     */
+    @GetMapping("/active/count")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Long>> getActiveMembersCount() {
+        long count = studentMembershipService.getActiveMembersCount();
+        return ResponseEntity.ok(Map.of("count", count));
+    }
+
+    /**
+     * Get membership ratio (active vs total students).
+     * Returns totalStudents, paidMembersCount, nonMembersCount, and memberPercentage.
+     *
+     * @return populated MembershipRatioDTO
+     */
+    @GetMapping("/ratio")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<MembershipRatioDTO> getMembershipRatio() {
+        MembershipRatioDTO ratio = studentMembershipService.getMembershipRatio();
+        return ResponseEntity.ok(ratio);
+    }
+
+    /**
+     * Search memberships with dynamic filters using JPA Specification.
+     * All query parameters are optional — omitted params are ignored in the filter.
+     *
+     * @param studentName  partial match on first or last name (case-insensitive)
+     * @param studentId    exact match on student ID
+     * @param yearLevel    filter by year level (1–4)
+     * @param activeStatus "ACTIVE", "INACTIVE", or omit for all
+     * @param academicYear filter by membership academic year
+     * @param semester     filter by membership semester
+     * @param page         zero-based page index (default 0)
+     * @param size         items per page (default 7)
+     * @return paginated list of matching StudentMembershipResponseDTOs
+     */
+    @GetMapping("/search")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<StudentMembershipResponseDTO>> searchMemberships(
+            @RequestParam(required = false) String studentName,
+            @RequestParam(required = false) String studentId,
+            @RequestParam(required = false) String activeStatus,
+            @RequestParam(required = false) Integer yearStart,
+            @RequestParam(required = false) Integer yearEnd,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "7") int size) {
+
+        StudentMembershipSearchDTO searchDTO = StudentMembershipSearchDTO.builder()
+                .studentName(studentName)
+                .studentId(studentId)
+                .activeStatus(activeStatus)
+                .yearStart(yearStart)
+                .yearEnd(yearEnd)
+                .build();
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<StudentMembershipResponseDTO> results = studentMembershipService.searchMemberships(searchDTO, pageable);
+        return ResponseEntity.ok(results);
+    }
+
+    /**
+     * Get ALL active members (unpaginated) for CSV export.
+     * Returns the full list so frontend can convert to CSV.
+     *
+     * @return complete list of active membership response DTOs
+     */
+    @GetMapping("/active/export")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<StudentMembershipResponseDTO>> exportActiveMembers() {
+        List<StudentMembershipResponseDTO> activeMembers = studentMembershipService.getAllActiveMembers();
+        return ResponseEntity.ok(activeMembers);
+    }
+
+    /**
+     * Get ALL non-members (students without active membership, unpaginated) for CSV export.
+     * Returns the full list so frontend can convert to CSV.
+     *
+     * @return complete list of student response DTOs for non-members
+     */
+    @GetMapping("/inactive/export")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<StudentResponseDTO>> exportNonMembers() {
+        List<StudentResponseDTO> nonMembers = studentMembershipService.getAllNonMembers();
+        return ResponseEntity.ok(nonMembers);
+    }
+
+    /**
+     * Bulk create memberships for multiple students in a single academic year.
+     * Deduplicates and skips non-existent students silently.
+     * Uses saveAll() to avoid N+1 queries.
+     *
+     * @param bulkRequestDTO contains list of student IDs and academic year range
+     * @return list of created membership response DTOs
+     */
+    @PostMapping("/bulk")
+    @PreAuthorize("hasRole('ADMIN_FINANCE')")
+    public ResponseEntity<List<StudentMembershipResponseDTO>> bulkCreateMemberships(
+            @RequestBody BulkStudentMembershipRequestDTO bulkRequestDTO) {
+        List<StudentMembershipResponseDTO> createdMemberships = studentMembershipService.bulkCreateMemberships(bulkRequestDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdMemberships);
     }
 }

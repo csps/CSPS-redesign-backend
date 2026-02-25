@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(indexes={
-    @Index(name = "idx_email", columnList = "email")
+    @Index(name = "idx_email", columnList = "email", unique = true)
 })
 @Data
 @NoArgsConstructor
@@ -44,7 +44,7 @@ public class UserProfile {
     @Column(nullable = true)
     private LocalDate birthDate;
 
-    @Column(nullable = true)
+    @Column(nullable = true, unique = true)
     @Email(message = "Invalid email format")
     private String email;
 

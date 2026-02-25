@@ -12,6 +12,7 @@ import org.csps.backend.domain.dtos.response.MerchDetailedResponseDTO;
 import org.csps.backend.domain.dtos.response.MerchSummaryResponseDTO;
 import org.csps.backend.domain.entities.Merch;
 import org.csps.backend.domain.enums.MerchType;
+import org.csps.backend.domain.enums.OrderStatus;
 import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.exception.MerchAlreadyExistException;
 import org.csps.backend.exception.MerchNotFoundException;
@@ -148,9 +149,10 @@ public class MerchServiceImpl implements MerchService {
 
         String studentId = studentService.getCurrentStudentId();
         if (studentId != null) {
-            // combine membership checks into single boolean
+            // combine membership checks: active membership, in cart, or in pending order
             boolean shouldExcludeMembership = studentMembershipRepository.hasActiveMembership(studentId)
-                    || cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP);
+                    || cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP)
+                    || orderItemRepository.existsByStudentIdAndMerchTypeAndStatus(studentId, MerchType.MEMBERSHIP, OrderStatus.PENDING);
 
             if (shouldExcludeMembership) {
                 allMerch.removeIf(m -> m.getMerchType() == MerchType.MEMBERSHIP);
@@ -166,9 +168,10 @@ public class MerchServiceImpl implements MerchService {
         String studentId = studentService.getCurrentStudentId();
         
         if (studentId != null) {
-            // combine both checks into single boolean: if student has active membership OR membership in cart
+            // combine membership checks: active membership, in cart, or in pending order
             boolean shouldExcludeMembership = studentMembershipRepository.hasActiveMembership(studentId) 
-                    || cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP);
+                    || cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP)
+                    || orderItemRepository.existsByStudentIdAndMerchTypeAndStatus(studentId, MerchType.MEMBERSHIP, OrderStatus.PENDING);
 
             if (shouldExcludeMembership) {
                 return summaries.stream()
@@ -196,9 +199,10 @@ public class MerchServiceImpl implements MerchService {
 
         String studentId = studentService.getCurrentStudentId();
         if (studentId != null && merchType == MerchType.MEMBERSHIP) {
-            // combine membership checks into single boolean
+            // combine membership checks: active membership, in cart, or in pending order
             boolean shouldExcludeMembership = studentMembershipRepository.hasActiveMembership(studentId)
-                    || cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP);
+                    || cartItemRepository.existsByStudentIdAndMerchType(studentId, MerchType.MEMBERSHIP)
+                    || orderItemRepository.existsByStudentIdAndMerchTypeAndStatus(studentId, MerchType.MEMBERSHIP, OrderStatus.PENDING);
             
             if (shouldExcludeMembership) {
                 return List.of();
