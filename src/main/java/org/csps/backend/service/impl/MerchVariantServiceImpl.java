@@ -19,6 +19,7 @@ import org.csps.backend.repository.OrderItemRepository;
 import org.csps.backend.service.MerchVariantItemService;
 import org.csps.backend.service.MerchVariantService;
 import org.csps.backend.service.S3Service;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
