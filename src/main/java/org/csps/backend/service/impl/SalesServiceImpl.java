@@ -24,6 +24,7 @@ import org.csps.backend.repository.OrderRepository;
 import org.csps.backend.repository.specification.OrderSpecification;
 import org.csps.backend.service.SalesService;
 import org.csps.backend.service.StudentMembershipService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -40,8 +41,12 @@ public class SalesServiceImpl implements SalesService {
     private final MerchVariantItemRepository merchVariantItemRepository;
     private final OrderItemRepository orderItemRepository;
     private final StudentMembershipService studentMembershipService;
-    
-    private final OrderSpecification orderSpecification;
+
+    @Value("${csps.currentAcademicYear.start}")
+    private int currentYearStart;
+
+    @Value("${csps.currentAcademicYear.end}")
+    private int currentYearEnd;
 
 
     // Deployment date - set to today (February 8, 2026) as dummy data
@@ -68,7 +73,7 @@ public class SalesServiceImpl implements SalesService {
     @Override
     public Page<TransactionDTO> getTransactions(Pageable pageable, OrderSearchDTO searchDTO) {
         /* build specification for database-level filtering to prevent loading all orders into memory */
-        Specification<Order> spec = orderSpecification.withFilters(searchDTO);
+        Specification<Order> spec = OrderSpecification.withFilters(searchDTO);
         
         /* fetch paginated results with eager loading via @EntityGraph in OrderRepository.findAll(pageable) */
         Page<Order> orders = orderRepository.findAll(spec, pageable);
@@ -102,9 +107,8 @@ public class SalesServiceImpl implements SalesService {
                 try {
                     StudentMembershipRequestDTO membershipRequest = StudentMembershipRequestDTO.builder()
                             .studentId(order.getStudent().getStudentId())
-                            .academicYear(order.getStudent().getYearLevel())
-                            .semester((byte) 2) // Default semester
-                            .active(true)
+                            .yearStart(currentYearStart)
+                            .yearEnd(currentYearEnd)
                             .build();
                     
                     studentMembershipService.createStudentMembership(membershipRequest);

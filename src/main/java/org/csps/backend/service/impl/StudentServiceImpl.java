@@ -1,10 +1,6 @@
 package org.csps.backend.service.impl;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.csps.backend.domain.dtos.request.StudentRequestDTO;
 import org.csps.backend.domain.dtos.request.UserRequestDTO;
@@ -93,6 +89,13 @@ public class StudentServiceImpl implements StudentService {
    @Override
    public Page<StudentResponseDTO> getAllStudents(Pageable pageable) {
        return studentRepository.findAll(pageable)
+               .map(studentMapper::toResponseDTO);
+   }
+
+   // Search Students by ID or name with optional year level filter
+   @Override
+   public Page<StudentResponseDTO> searchStudents(String search, Byte yearLevel, Pageable pageable) {
+       return studentRepository.searchStudents(search, yearLevel, pageable)
                .map(studentMapper::toResponseDTO);
    }
 
