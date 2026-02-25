@@ -23,7 +23,7 @@ public class OrderNotificationServiceImpl implements OrderNotificationService {
 
     private final EmailService emailService;
 
-    @Value("${S3_PUBLIC_BASE_URL:https://csps-web.s3.us-east-1.amazonaws.com/}")
+    @Value("${S3_PUBLIC_BASE_URL}")
     private String s3PublicBaseUrl;
 
     /**
