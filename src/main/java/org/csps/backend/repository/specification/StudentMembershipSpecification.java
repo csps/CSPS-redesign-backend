@@ -51,7 +51,7 @@ public class StudentMembershipSpecification {
 
                 // Filter by student name (first name or last name, case-insensitive partial match)
                 if (Objects.nonNull(searchDTO.getStudentName()) && !searchDTO.getStudentName().isEmpty()) {
-                    String nameLike = "%" + searchDTO.getStudentName().toLowerCase() + "%";
+                    String nameLike = "%" + searchDTO.getStudentName().toLowerCase().trim() + "%";
                     predicates.add(
                         cb.or(
                             cb.like(cb.lower(userProfileJoin.get("firstName")), nameLike),
@@ -61,16 +61,17 @@ public class StudentMembershipSpecification {
                 }
 
                 // Filter by exact student ID
-                if (Objects.nonNull(searchDTO.getStudentId()) && !searchDTO.getStudentId().isEmpty()) {
-                    predicates.add(cb.equal(studentJoin.get("studentId"), searchDTO.getStudentId()));
+                if (Objects.nonNull(searchDTO.getStudentId()) && !searchDTO.getStudentId().trim().isEmpty()) {
+                    predicates.add(cb.like(studentJoin.get("studentId"), searchDTO.getStudentId().trim()));
                 }
 
                 // Filter by active status ("ACTIVE" or "INACTIVE")
                 if (Objects.nonNull(searchDTO.getActiveStatus()) && !searchDTO.getActiveStatus().isEmpty()) {
                     boolean isActive = "ACTIVE".equalsIgnoreCase(searchDTO.getActiveStatus());
                     predicates.add(cb.equal(root.get("active"), isActive));
-                }
+                } 
 
+                
                 // Filter by academic year start
                 if (Objects.nonNull(searchDTO.getYearStart())) {
                     predicates.add(cb.equal(root.get("yearStart"), searchDTO.getYearStart()));
