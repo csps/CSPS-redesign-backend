@@ -58,7 +58,6 @@ public class MerchServiceImpl implements MerchService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = {"allMerchs", "merchSummaries"}, allEntries = true)
     public MerchDetailedResponseDTO createMerch(MerchRequestDTO request) throws IOException {
         if (request == null) {
             throw new InvalidRequestException("Request is required");
@@ -141,7 +140,6 @@ public class MerchServiceImpl implements MerchService {
     }
 
     @Override
-    @Cacheable(cacheNames = "allMerchs")
     public List<MerchDetailedResponseDTO> getAllMerch() {
         List<MerchDetailedResponseDTO> allMerch = merchRepository.findAll().stream()
                 .map(merchMapper::toDetailedResponseDTO)
@@ -162,7 +160,6 @@ public class MerchServiceImpl implements MerchService {
     }
 
     @Override
-    @Cacheable(cacheNames = "merchSummaries")
     public List<MerchSummaryResponseDTO> getAllMerchSummaries() {
         List<MerchSummaryResponseDTO> summaries = merchRepository.findAllSummaries();
         String studentId = studentService.getCurrentStudentId();
@@ -183,7 +180,6 @@ public class MerchServiceImpl implements MerchService {
     }
 
     @Override
-    @Cacheable(cacheNames = "merch", key = "#id")
     public MerchDetailedResponseDTO getMerchById(Long id) {
         Merch merch = merchRepository.findById(id)
                 .orElseThrow(() -> new MerchNotFoundException("Merch not found with id: " + id));
@@ -191,7 +187,6 @@ public class MerchServiceImpl implements MerchService {
     }
 
     @Override
-    @Cacheable(cacheNames = "merch", key = "#merchType.toString()")
     public List<MerchSummaryResponseDTO> getMerchByType(MerchType merchType) {
         if (merchType == null) {
             throw new InvalidRequestException("Merch type is required");
@@ -214,7 +209,6 @@ public class MerchServiceImpl implements MerchService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = {"allMerchs", "merchSummaries", "merch"}, allEntries = true)
     public MerchDetailedResponseDTO putMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) throws IOException {
         // Find merch by ID
         Merch foundMerch = merchRepository.findById(merchId)
@@ -244,7 +238,6 @@ public class MerchServiceImpl implements MerchService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = {"allMerchs", "merchSummaries", "merch"}, allEntries = true)
     public MerchDetailedResponseDTO patchMerch(Long merchId, MerchUpdateRequestDTO merchUpdateRequestDTO) throws IOException {
         // Find merch by ID
         Merch foundMerch = merchRepository.findById(merchId)
@@ -271,7 +264,6 @@ public class MerchServiceImpl implements MerchService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = {"allMerchs", "merchSummaries", "merch"}, allEntries = true)
     public void deleteMerch(Long merchId) {
         // Find merch by ID
         Merch merch = merchRepository.findById(merchId)
@@ -291,7 +283,6 @@ public class MerchServiceImpl implements MerchService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = {"allMerchs", "merchSummaries", "merch"}, allEntries = true)
     public MerchDetailedResponseDTO revertMerch(Long merchId) {
         /* revert archived merch back to active status */
         Merch merch = merchRepository.findByIdAndIsInactive(merchId)
