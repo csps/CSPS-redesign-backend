@@ -56,7 +56,7 @@ public class UserPrincipal implements UserDetails {
                 case PRESIDENT, VP_INTERNAL, VP_EXTERNAL, SECRETARY -> {
                     authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN_EXECUTIVE"));
                 }
-                case TREASURER, ASSISTANT_TREASURER -> {
+                case TREASURER, ASSISTANT_TREASURER, AUDITOR -> {
                     authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN_FINANCE"));
                 }
                 case DEVELOPER -> {

@@ -70,7 +70,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Decide which domainId to use (Student/Admin)
                 Object domainId;
                 if ("STUDENT".equalsIgnoreCase(userPrincipal.getRole())) {
-                    domainId = userPrincipal.getStudentId();
+                    domainId = jwtService.getStudentIdFromToken(accessToken);
                 } else if ("ADMIN".equalsIgnoreCase(userPrincipal.getRole())) {
                     domainId = userPrincipal.getAdminId();
                 } else {

@@ -45,13 +45,13 @@ public class AttendanceRecordSpecification {
                 Join<AttendanceRecord, EventSession> sessionJoin = root.join("eventSession", JoinType.LEFT);
                 
                 // filter by student id
-                if (Objects.nonNull(searchDTO.getStudentId()) && !searchDTO.getStudentId().isEmpty()) {
-                    predicates.add(cb.like(studentJoin.get("studentId").as(String.class), "%" + searchDTO.getStudentId() + "%"));
+                if (Objects.nonNull(searchDTO.getStudentId()) && !searchDTO.getStudentId().isEmpty() && searchDTO.getStudentId() != null) {
+                    predicates.add(cb.like(studentJoin.get("studentId").as(String.class), "%" + searchDTO.getStudentId().trim() + "%"));
                 }
                 
                 // filter by student name (first name or last name)
                 if (Objects.nonNull(searchDTO.getStudentName()) && !searchDTO.getStudentName().isEmpty()) {
-                    String nameLike = "%" + searchDTO.getStudentName().toLowerCase() + "%";
+                    String nameLike = "%" + searchDTO.getStudentName().toLowerCase().trim() + "%";
                     predicates.add(
                         cb.or(
                             cb.like(cb.lower(userProfileJoin.get("firstName")), nameLike),

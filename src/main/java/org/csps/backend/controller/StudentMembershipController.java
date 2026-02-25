@@ -151,10 +151,9 @@ public class StudentMembershipController {
      *
      * @param studentName  partial match on first or last name (case-insensitive)
      * @param studentId    exact match on student ID
-     * @param yearLevel    filter by year level (1–4)
      * @param activeStatus "ACTIVE", "INACTIVE", or omit for all
-     * @param academicYear filter by membership academic year
-     * @param semester     filter by membership semester
+     * @param yearStart    filter by membership academic year start
+     * @param yearEnd      filter by membership academic year end
      * @param page         zero-based page index (default 0)
      * @param size         items per page (default 7)
      * @return paginated list of matching StudentMembershipResponseDTOs

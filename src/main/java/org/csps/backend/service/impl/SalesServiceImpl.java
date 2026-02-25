@@ -50,7 +50,7 @@ public class SalesServiceImpl implements SalesService {
 
 
     // Deployment date - set to today (February 8, 2026) as dummy data
-    private static final LocalDate DEPLOYMENT_DATE = LocalDate.of(2026, 2, 8);
+    private static final LocalDate DEPLOYMENT_DATE = LocalDate.of(2026, 2, 25);
 
     @Override
     public SalesStatsDTO getSalesStats(SalesPeriod period) {
