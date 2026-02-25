@@ -42,50 +42,57 @@ public class OrderItemServiceImpl implements OrderItemService {
             throw new InvalidRequestException("Order item request is required");
         }
         
-        // Validate order exists
+        /* validate order exists */
         Order order = orderRepository.findById(orderItemRequestDTO.getOrderId())
             .orElseThrow(() -> new OrderNotFoundException("Order not found"));
         
-        // Validate merch variant item exists
-        MerchVariantItem merchVariantItem = merchVariantItemRepository.findById(orderItemRequestDTO.getMerchVariantItemId())
+        /* validate merch variant item exists and acquire pessimistic write lock to prevent concurrent stock updates */
+        MerchVariantItem merchVariantItem = merchVariantItemRepository.findByIdWithLock(orderItemRequestDTO.getMerchVariantItemId())
             .orElseThrow(() -> new InvalidRequestException("MerchVariantItem not found"));
         
-        // Extract merchVariantId from MerchVariantItem
+        /* extract merchVariantId from MerchVariantItem */
         Long merchVariantId = getMerchVariantIdFromItem(merchVariantItem);
         
-        // Validate quantity
+        /* validate quantity */
         if (orderItemRequestDTO.getQuantity() == null || orderItemRequestDTO.getQuantity() <= 0) {
             throw new InvalidRequestException("Quantity must be greater than 0");
         }
         
-        // Validate sufficient stock
+        /* validate sufficient stock */
         if (orderItemRequestDTO.getQuantity() > merchVariantItem.getStockQuantity()) {
             throw new InvalidRequestException("Insufficient stock. Available: " + merchVariantItem.getStockQuantity() + 
                     ", Requested: " + orderItemRequestDTO.getQuantity());
         }
         
-        // Validate price
+        /* validate price */
         if (orderItemRequestDTO.getPriceAtPurchase() == null || orderItemRequestDTO.getPriceAtPurchase() < 0) {
             throw new InvalidRequestException("Price at purchase must be non-negative");
         }
         
-        // Create order item
-        OrderItem orderItem = OrderItem.builder()
-            .order(order)
-            .merchVariantItem(merchVariantItem)
-            .quantity(orderItemRequestDTO.getQuantity())
-            .priceAtPurchase(orderItemRequestDTO.getPriceAtPurchase())
-            .updatedAt(LocalDateTime.now())
-            .build();
-        
-        OrderItem savedOrderItem = orderItemRepository.save(orderItem);
-        
-        // Deduct stock from MerchVariantItem
-        int newStockQuantity = merchVariantItem.getStockQuantity() - orderItemRequestDTO.getQuantity();
-        merchVariantItem.setStockQuantity(newStockQuantity);
-        merchVariantItemRepository.save(merchVariantItem);
-        
-        return orderItemMapper.toResponseDTO(savedOrderItem);
+        try {
+            /* create order item */
+            OrderItem orderItem = OrderItem.builder()
+                .order(order)
+                .merchVariantItem(merchVariantItem)
+                .quantity(orderItemRequestDTO.getQuantity())
+                .priceAtPurchase(orderItemRequestDTO.getPriceAtPurchase())
+                .updatedAt(LocalDateTime.now())
+                .build();
+            
+            OrderItem savedOrderItem = orderItemRepository.save(orderItem);
+            
+            /* deduct stock from MerchVariantItem (pessimistic lock already held) */
+            int newStockQuantity = merchVariantItem.getStockQuantity() - orderItemRequestDTO.getQuantity();
+            merchVariantItem.setStockQuantity(newStockQuantity);
+            merchVariantItemRepository.save(merchVariantItem);
+            
+            return orderItemMapper.toResponseDTO(savedOrderItem);
+        } catch (Exception e) {
+            /* log error and rethrow to trigger transaction rollback */
+            System.err.println("Error creating order item and deducting stock: " + e.getMessage());
+            e.printStackTrace();
+            throw new InvalidRequestException("Failed to create order item: " + e.getMessage());
+        }
     }
     
     /**
@@ -198,11 +205,30 @@ public class OrderItemServiceImpl implements OrderItemService {
         OrderItem orderItem = orderItemRepository.findById(id)
             .orElseThrow(() -> new OrderItemNotFoundException("Order item not found"));
         
-        orderItem.setOrderStatus(status);
-        orderItem.setUpdatedAt(LocalDateTime.now());
+        OrderStatus oldStatus = orderItem.getOrderStatus();
         
-        OrderItem updatedOrderItem = orderItemRepository.save(orderItem);
+        try {
+            /* if order is being cancelled or rejected, restore stock to MerchVariantItem */
+            if ((status == OrderStatus.REJECTED) && 
+                (oldStatus != OrderStatus.REJECTED )) {
+                
+                /* acquire pessimistic lock on merch variant item */
+                MerchVariantItem merchVariantItem = merchVariantItemRepository.findByIdWithLock(orderItem.getMerchVariantItem().getMerchVariantItemId())
+                    .orElseThrow(() -> new InvalidRequestException("MerchVariantItem not found during stock restoration"));
+                
+                /* restore stock */
+                int restoredStockQuantity = merchVariantItem.getStockQuantity() + orderItem.getQuantity();
+                merchVariantItem.setStockQuantity(restoredStockQuantity);
+                merchVariantItemRepository.save(merchVariantItem);
+            }
+            
+            /* update order item status */
+            orderItem.setOrderStatus(status);
+            orderItem.setUpdatedAt(LocalDateTime.now());
+            
+            OrderItem updatedOrderItem = orderItemRepository.save(orderItem);
 
+            /* send notification email if order details are available */
             OrderItem itemWithDetails = orderItemRepository.findByIdWithStudentAndMerchDetails(id)
                 .orElse(null);
             if (itemWithDetails != null) {
@@ -210,10 +236,15 @@ public class OrderItemServiceImpl implements OrderItemService {
                 if (notificationData != null) {
                     orderNotificationService.sendOrderStatusEmail(notificationData);
                 }
-            
-        }
+            }
 
-        return orderItemMapper.toResponseDTO(updatedOrderItem);
+            return orderItemMapper.toResponseDTO(updatedOrderItem);
+        } catch (Exception e) {
+            /* log error and rethrow to trigger transaction rollback */
+            System.err.println("Error updating order item status: " + e.getMessage());
+            e.printStackTrace();
+            throw new InvalidRequestException("Failed to update order item status: " + e.getMessage());
+        }
     }
 
 

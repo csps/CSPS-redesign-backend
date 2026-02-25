@@ -109,15 +109,15 @@ public class MerchCustomerServiceImpl implements MerchCustomerService {
     @Override
     @Transactional
     public List<OrderResponseDTO> recordBulkMerchPayment(BulkMerchPaymentRequestDTO requestDTO) {
-        // Validate MerchVariantItem exists
-        MerchVariantItem merchVariantItem = merchVariantItemRepository.findById(requestDTO.getMerchVariantItemId())
+        /* validate MerchVariantItem exists with pessimistic write lock to prevent concurrent updates */
+        MerchVariantItem merchVariantItem = merchVariantItemRepository.findByIdWithLock(requestDTO.getMerchVariantItemId())
                 .orElseThrow(() -> new MerchNotFoundException(
                         "MerchVariantItem not found with ID: " + requestDTO.getMerchVariantItemId()));
 
         int quantityPerStudent = requestDTO.getQuantity() != null ? requestDTO.getQuantity() : 1;
         double pricePerItem = merchVariantItem.getPrice();
 
-        // Validate total stock upfront before any persistence
+        /* validate total stock upfront before any persistence */
         int totalStockNeeded = quantityPerStudent * requestDTO.getEntries().size();
         if (merchVariantItem.getStockQuantity() < totalStockNeeded) {
             throw new InvalidRequestException(
@@ -125,55 +125,62 @@ public class MerchCustomerServiceImpl implements MerchCustomerService {
                             + ", Required: " + totalStockNeeded);
         }
 
-        // PHASE 1: Build all Order entities using each entry's actual orderDate
-        List<Order> ordersToSave = new ArrayList<>();
-        LocalDateTime now = LocalDateTime.now();
+        try {
+            /* PHASE 1: Build all Order entities using each entry's actual orderDate */
+            List<Order> ordersToSave = new ArrayList<>();
+            LocalDateTime now = LocalDateTime.now();
 
-        for (BulkPaymentEntryDTO entry : requestDTO.getEntries()) {
-            Student student = studentRepository.findByStudentId(entry.getStudentId())
-                    .orElseThrow(() -> new StudentNotFoundException("Student not found with ID: " + entry.getStudentId()));
+            for (BulkPaymentEntryDTO entry : requestDTO.getEntries()) {
+                Student student = studentRepository.findByStudentId(entry.getStudentId())
+                        .orElseThrow(() -> new StudentNotFoundException("Student not found with ID: " + entry.getStudentId()));
 
-            Order order = Order.builder()
-                    .student(student)
-                    .orderDate(entry.getOrderDate())
-                    .totalPrice(pricePerItem * quantityPerStudent)
-                    .updatedAt(now)
-                    .orderStatus(OrderStatus.CLAIMED)
-                    .quantity(quantityPerStudent)
-                    .build();
+                Order order = Order.builder()
+                        .student(student)
+                        .orderDate(entry.getOrderDate())
+                        .totalPrice(pricePerItem * quantityPerStudent)
+                        .updatedAt(now)
+                        .orderStatus(OrderStatus.CLAIMED)
+                        .quantity(quantityPerStudent)
+                        .build();
 
-            ordersToSave.add(order);
+                ordersToSave.add(order);
+            }
+
+            /* PHASE 2: Batch-save all Orders in one round-trip */
+            List<Order> savedOrders = orderRepository.saveAll(ordersToSave);
+
+            /* PHASE 3: Build all OrderItem entities referencing their saved Orders */
+            List<OrderItem> orderItemsToSave = new ArrayList<>();
+
+            for (Order savedOrder : savedOrders) {
+                OrderItem orderItem = OrderItem.builder()
+                        .order(savedOrder)
+                        .merchVariantItem(merchVariantItem)
+                        .quantity(quantityPerStudent)
+                        .priceAtPurchase(pricePerItem)
+                        .orderStatus(OrderStatus.TO_BE_CLAIMED)
+                        .build();
+
+                orderItemsToSave.add(orderItem);
+            }
+
+            /* PHASE 4: Batch-save all OrderItems in one round-trip */
+            orderItemRepository.saveAll(orderItemsToSave);
+
+            /* PHASE 5: Decrement stock once and persist (pessimistic lock already held) */
+            merchVariantItem.setStockQuantity(merchVariantItem.getStockQuantity() - totalStockNeeded);
+            merchVariantItemRepository.save(merchVariantItem);
+
+            /* Map saved orders to response DTOs */
+            return savedOrders.stream()
+                    .map(orderMapper::toResponseDTO)
+                    .toList();
+        } catch (Exception e) {
+            /* log error and rethrow to trigger transaction rollback */
+            System.err.println("Error recording bulk merch payment: " + e.getMessage());
+            e.printStackTrace();
+            throw new InvalidRequestException("Failed to record bulk merch payment: " + e.getMessage());
         }
-
-        // PHASE 2: Batch-save all Orders in one round-trip
-        List<Order> savedOrders = orderRepository.saveAll(ordersToSave);
-
-        // PHASE 3: Build all OrderItem entities referencing their saved Orders
-        List<OrderItem> orderItemsToSave = new ArrayList<>();
-
-        for (Order savedOrder : savedOrders) {
-            OrderItem orderItem = OrderItem.builder()
-                    .order(savedOrder)
-                    .merchVariantItem(merchVariantItem)
-                    .quantity(quantityPerStudent)
-                    .priceAtPurchase(pricePerItem)
-                    .orderStatus(OrderStatus.TO_BE_CLAIMED)
-                    .build();
-
-            orderItemsToSave.add(orderItem);
-        }
-
-        // PHASE 4: Batch-save all OrderItems in one round-trip
-        orderItemRepository.saveAll(orderItemsToSave);
-
-        // PHASE 5: Decrement stock once and persist
-        merchVariantItem.setStockQuantity(merchVariantItem.getStockQuantity() - totalStockNeeded);
-        merchVariantItemRepository.save(merchVariantItem);
-
-        // Map saved orders to response DTOs
-        return savedOrders.stream()
-                .map(orderMapper::toResponseDTO)
-                .toList();
     }
 
     /**
