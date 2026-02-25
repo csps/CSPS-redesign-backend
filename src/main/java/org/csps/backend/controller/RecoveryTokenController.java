@@ -136,6 +136,7 @@ public class RecoveryTokenController {
             
             /* reset password */
             UserAccount userAccount = recoveryToken.getUserAccount();
+            
             String encodedPassword = passwordEncoder.encode(requestDTO.getNewPassword());
             userAccount.setPassword(encodedPassword);
             

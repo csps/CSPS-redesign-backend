@@ -51,7 +51,6 @@ public class OrderItemServiceImpl implements OrderItemService {
             .orElseThrow(() -> new InvalidRequestException("MerchVariantItem not found"));
         
         /* extract merchVariantId from MerchVariantItem */
-        Long merchVariantId = getMerchVariantIdFromItem(merchVariantItem);
         
         /* validate quantity */
         if (orderItemRequestDTO.getQuantity() == null || orderItemRequestDTO.getQuantity() <= 0) {
@@ -70,7 +69,7 @@ public class OrderItemServiceImpl implements OrderItemService {
         }
         
         try {
-            /* create order item */
+            /* create order item with stock deduction to reserve inventory */
             OrderItem orderItem = OrderItem.builder()
                 .order(order)
                 .merchVariantItem(merchVariantItem)
@@ -82,10 +81,12 @@ public class OrderItemServiceImpl implements OrderItemService {
             OrderItem savedOrderItem = orderItemRepository.save(orderItem);
             
             /* deduct stock from MerchVariantItem (pessimistic lock already held) */
+            /* stock is reserved when order item is created */
             int newStockQuantity = merchVariantItem.getStockQuantity() - orderItemRequestDTO.getQuantity();
             merchVariantItem.setStockQuantity(newStockQuantity);
             merchVariantItemRepository.save(merchVariantItem);
             
+            System.out.println("Order item created successfully. Stock deducted: " + orderItemRequestDTO.getQuantity());
             return orderItemMapper.toResponseDTO(savedOrderItem);
         } catch (Exception e) {
             /* log error and rethrow to trigger transaction rollback */
@@ -208,18 +209,19 @@ public class OrderItemServiceImpl implements OrderItemService {
         OrderStatus oldStatus = orderItem.getOrderStatus();
         
         try {
-            /* if order is being cancelled or rejected, restore stock to MerchVariantItem */
-            if ((status == OrderStatus.REJECTED) && 
-                (oldStatus != OrderStatus.REJECTED )) {
-                
-                /* acquire pessimistic lock on merch variant item */
+            /* restore stock only when transitioning TO REJECTED status (prevent duplicate restorations) */
+            if (status == OrderStatus.REJECTED && oldStatus != OrderStatus.REJECTED) {
+                /* acquire pessimistic lock on merch variant item to ensure thread-safe stock restoration */
                 MerchVariantItem merchVariantItem = merchVariantItemRepository.findByIdWithLock(orderItem.getMerchVariantItem().getMerchVariantItemId())
                     .orElseThrow(() -> new InvalidRequestException("MerchVariantItem not found during stock restoration"));
                 
-                /* restore stock */
+                /* restore stock when order is rejected */
                 int restoredStockQuantity = merchVariantItem.getStockQuantity() + orderItem.getQuantity();
                 merchVariantItem.setStockQuantity(restoredStockQuantity);
                 merchVariantItemRepository.save(merchVariantItem);
+                
+                System.out.println("Stock restored due to order rejection. Quantity: " + orderItem.getQuantity() + 
+                    " | Previous status: " + oldStatus + " -> New status: " + status);
             }
             
             /* update order item status */
@@ -239,6 +241,8 @@ public class OrderItemServiceImpl implements OrderItemService {
             }
 
             return orderItemMapper.toResponseDTO(updatedOrderItem);
+        } catch (InvalidRequestException e) {
+            throw e;
         } catch (Exception e) {
             /* log error and rethrow to trigger transaction rollback */
             System.err.println("Error updating order item status: " + e.getMessage());
