@@ -2,20 +2,30 @@ package org.csps.backend.service.impl;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.csps.backend.domain.dtos.request.BulkStudentMembershipRequestDTO;
 import org.csps.backend.domain.dtos.request.StudentMembershipRequestDTO;
+import org.csps.backend.domain.dtos.request.StudentMembershipSearchDTO;
+import org.csps.backend.domain.dtos.response.MembershipRatioDTO;
 import org.csps.backend.domain.dtos.response.StudentMembershipResponseDTO;
+import org.csps.backend.domain.dtos.response.StudentResponseDTO;
 import org.csps.backend.domain.entities.Student;
 import org.csps.backend.domain.entities.StudentMembership;
 import org.csps.backend.exception.InvalidRequestException;
 import org.csps.backend.exception.MemberNotFoundException;
 import org.csps.backend.exception.StudentNotFoundException;
+import org.csps.backend.mapper.StudentMapper;
 import org.csps.backend.mapper.StudentMembershipMapper;
 import org.csps.backend.repository.StudentMembershipRepository;
 import org.csps.backend.repository.StudentRepository;
+import org.csps.backend.repository.specification.StudentMembershipSpecification;
 import org.csps.backend.service.StudentMembershipService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
@@ -33,8 +43,13 @@ public class StudentMembershipServiceImpl implements StudentMembershipService {
     private final StudentMembershipMapper studentMembershipMapper;
     private final StudentMembershipRepository studentMembershipRepository;
     private final StudentRepository studentRepository;
+    private final StudentMapper studentMapper;
 
-    private static final int CURRENT_SEMESTER = 2;
+    @Value("${csps.currentAcademicYear.start}")
+    private int currentYearStart;
+
+    @Value("${csps.currentAcademicYear.end}")
+    private int currentYearEnd;
 
     /**
      * Creates a new student membership.
@@ -45,52 +60,41 @@ public class StudentMembershipServiceImpl implements StudentMembershipService {
     @Override
     @Transactional
     public StudentMembershipResponseDTO createStudentMembership(@Valid StudentMembershipRequestDTO requestDTO) {
-        // Validate student exists
+        // validate student exists
         String studentId = requestDTO.getStudentId();
-
-        boolean activeFlag = false;
-
-     
-
         Student student = studentRepository.findByStudentId(studentId)
                 .orElseThrow(() -> new StudentNotFoundException("Student not found with ID: " + studentId));
 
-
-
-        // Validate academic year and semester
-        if (requestDTO.getAcademicYear() == null) {
-            throw new InvalidRequestException("Academic year cannot be null");
-        }
-        if (requestDTO.getSemester() == null) {
-            throw new InvalidRequestException("Semester cannot be null");
+        // validate year range
+        if (requestDTO.getYearStart() == null || requestDTO.getYearEnd() == null) {
+            throw new InvalidRequestException("Year start and year end cannot be null");
         }
 
-        if (student.getYearLevel() == requestDTO.getAcademicYear() && requestDTO.getSemester() == CURRENT_SEMESTER) {
-            activeFlag = true;
+        if (requestDTO.getYearStart() >= requestDTO.getYearEnd()) {
+            throw new InvalidRequestException("Year start must be less than year end");
         }
 
-        // Check if membership already exists for this academic year and semester
+        // check if membership already exists for this year
         Optional<StudentMembership> existingMembership = studentMembershipRepository
-                .findByStudentStudentIdAndAcademicYearAndSemester(studentId, requestDTO.getAcademicYear(), requestDTO.getSemester());
+                .findByStudentStudentIdAndYearStartAndYearEnd(studentId, requestDTO.getYearStart(), requestDTO.getYearEnd());
         if (existingMembership.isPresent()) {
-            throw new InvalidRequestException("Membership already exists for academic year " + requestDTO.getAcademicYear() + " and semester " + requestDTO.getSemester());
+            throw new InvalidRequestException("Membership already exists for academic year " + requestDTO.getYearStart() + "-" + requestDTO.getYearEnd());
         }
 
-        // Map to entity
+        // determine if membership should be active (only if it's the current academic year)
+        boolean activeFlag = requestDTO.getYearStart() == currentYearStart && requestDTO.getYearEnd() == currentYearEnd;
+
+        // map to entity
         StudentMembership membership = studentMembershipMapper.toEntity(requestDTO);
         membership.setStudent(student);
-
-
-
-        // Set academic year and semester from request
-        membership.setAcademicYear(requestDTO.getAcademicYear());
-        membership.setSemester(requestDTO.getSemester());
+        membership.setYearStart(requestDTO.getYearStart());
+        membership.setYearEnd(requestDTO.getYearEnd());
         membership.setActive(activeFlag);
 
-        // Save
+        // save
         StudentMembership saved = studentMembershipRepository.save(membership);
 
-        // Return DTO
+        // return DTO
         return studentMembershipMapper.toResponseDTO(saved);
     }
 
@@ -114,14 +118,15 @@ public class StudentMembershipServiceImpl implements StudentMembershipService {
      */
     @Override
     public List<StudentMembershipResponseDTO> getStudentWithMemberships(String studentId) {
-        // Get student
-        Student student = studentRepository.findByStudentId(studentId)
-                .orElseThrow(() -> new StudentNotFoundException("Student not found with ID: " + studentId));
+        /* verify student exists */
+        if (!studentRepository.existsById(studentId)) {
+            throw new StudentNotFoundException("Student not found with ID: " + studentId);
+        }
 
-        // Get memberships
+        /* get memberships */
         List<StudentMembership> memberships = studentMembershipRepository.findByStudentStudentId(studentId);
 
-        // Map to DTO
+        /* map to DTO */
         return memberships.stream()
                 .map(studentMembershipMapper::toResponseDTO)
                 .toList();
@@ -152,10 +157,15 @@ public class StudentMembershipServiceImpl implements StudentMembershipService {
         StudentMembership existing = studentMembershipRepository.findById(membershipId)
                 .orElseThrow(() -> new MemberNotFoundException("Membership not found with ID: " + membershipId));
 
-        // Update fields
-        existing.setActive(requestDTO.isActive());
+        /* update year range if provided */
+        if (requestDTO.getYearStart() != null) {
+            existing.setYearStart(requestDTO.getYearStart());
+        }
+        if (requestDTO.getYearEnd() != null) {
+            existing.setYearEnd(requestDTO.getYearEnd());
+        }
 
-        // If student changed, but probably not
+        /* if student changed, update it */
         if (!existing.getStudent().getStudentId().equals(requestDTO.getStudentId())) {
             String newStudentId = requestDTO.getStudentId();
             Student newStudent = studentRepository.findByStudentId(newStudentId)
@@ -209,5 +219,175 @@ public class StudentMembershipServiceImpl implements StudentMembershipService {
         
         Page<StudentMembership> memberships = studentMembershipRepository.findByStudentStudentId(studentId, pageable);
         return memberships.map(studentMembershipMapper::toResponseDTO);
+    }
+
+    /**
+     * Retrieves all active student memberships with pagination.
+     * Uses EntityGraph on repository to eagerly load student profile data.
+     *
+     * @param pageable the pagination details
+     * @return paginated list of active membership response DTOs
+     */
+    @Override
+    public Page<StudentMembershipResponseDTO> getActiveMembersPaginated(Pageable pageable) {
+        Page<StudentMembership> activeMembers = studentMembershipRepository.findByActiveTrue(pageable);
+        return activeMembers.map(studentMembershipMapper::toResponseDTO);
+    }
+
+    /**
+     * Retrieves all students who do NOT have an active membership (non-members).
+     * Delegates to StudentRepository's NOT IN subquery with EntityGraph.
+     *
+     * @param pageable the pagination details
+     * @return paginated list of student response DTOs for non-members
+     */
+    @Override
+    public Page<StudentResponseDTO> getInactiveMembersPaginated(Pageable pageable) {
+        Page<Student> nonMembers = studentRepository.findStudentsWithoutActiveMembership(pageable);
+        return nonMembers.map(studentMapper::toResponseDTO);
+    }
+
+    /**
+     * Returns the count of currently active members.
+     *
+     * @return total number of active members
+     */
+    @Override
+    public long getActiveMembersCount() {
+        return studentMembershipRepository.countByActiveTrue();
+    }
+
+    /**
+     * Calculates the membership ratio: active members vs total students.
+     * Computes totalStudents, paidMembersCount, nonMembersCount, and memberPercentage.
+     *
+     * @return populated MembershipRatioDTO with all ratio metrics
+     */
+    @Override
+    public MembershipRatioDTO getMembershipRatio() {
+        long totalStudents = studentRepository.count();
+        long activeMembers = studentMembershipRepository.countByActiveTrue();
+        long nonMembers = totalStudents - activeMembers;
+
+        MembershipRatioDTO ratio = new MembershipRatioDTO();
+        ratio.setTotalStudents((int) totalStudents);
+        ratio.setPaidMembersCount((int) activeMembers);
+        ratio.setNonMembersCount((int) nonMembers);
+        ratio.setMemberPercentage(totalStudents > 0 
+            ? (double) activeMembers / totalStudents * 100 
+            : 0.0);
+        return ratio;
+    }
+
+    /**
+     * Search memberships with dynamic filters using JPA Specification.
+     * Builds predicates from the search DTO and delegates to JpaSpecificationExecutor.
+     *
+     * @param searchDTO the search/filter criteria (all fields optional)
+     * @param pageable  pagination details
+     * @return paginated list of matching membership response DTOs
+     */
+    @Override
+    public Page<StudentMembershipResponseDTO> searchMemberships(StudentMembershipSearchDTO searchDTO, Pageable pageable) {
+        Specification<StudentMembership> spec = StudentMembershipSpecification.withFilters(searchDTO);
+        Page<StudentMembership> memberships = studentMembershipRepository.findAll(spec, pageable);
+        return memberships.map(studentMembershipMapper::toResponseDTO);
+    }
+
+    /**
+     * Retrieves ALL active members without pagination for CSV export.
+     * Uses the unpaginated findByActiveTrue() repository method.
+     *
+     * @return complete list of active membership response DTOs
+     */
+    @Override
+    public List<StudentMembershipResponseDTO> getAllActiveMembers() {
+        List<StudentMembership> activeMembers = studentMembershipRepository.findByActiveTrue();
+        return activeMembers.stream()
+                .map(studentMembershipMapper::toResponseDTO)
+                .toList();
+    }
+
+    /**
+     * Retrieves ALL non-members (students without active membership) without pagination for CSV export.
+     * Uses the unpaginated findAllStudentsWithoutActiveMembership() repository method.
+     *
+     * @return complete list of student response DTOs for non-members
+     */
+    @Override
+    public List<StudentResponseDTO> getAllNonMembers() {
+        List<Student> nonMembers = studentRepository.findAllStudentsWithoutActiveMembership();
+        return nonMembers.stream()
+                .map(studentMapper::toResponseDTO)
+                .toList();
+    }
+
+    /**
+     * Bulk create memberships for multiple students in a single academic year.
+     * Deduplicates student IDs and skips non-existent students.
+     * Uses saveAll() to avoid N+1 queries.
+     *
+     * @param bulkRequestDTO contains list of student IDs and academic year range
+     * @return list of created membership response DTOs
+     */
+    @Override
+    @Transactional
+    public List<StudentMembershipResponseDTO> bulkCreateMemberships(@Valid BulkStudentMembershipRequestDTO bulkRequestDTO) {
+        /* validate year range */
+        if (bulkRequestDTO.getYearStart() == null || bulkRequestDTO.getYearEnd() == null) {
+            throw new InvalidRequestException("Year start and year end cannot be null");
+        }
+
+        if (bulkRequestDTO.getYearStart() >= bulkRequestDTO.getYearEnd()) {
+            throw new InvalidRequestException("Year start must be less than year end");
+        }
+
+        /* deduplicate student IDs */
+        Set<String> uniqueStudentIds = bulkRequestDTO.getStudentIds().stream()
+                .distinct()
+                .collect(Collectors.toSet());
+
+        /* fetch all students that exist */
+        List<Student> existingStudents = studentRepository.findAllById(uniqueStudentIds);
+
+        if (existingStudents.isEmpty()) {
+            throw new StudentNotFoundException("No valid students found for the provided IDs");
+        }
+
+
+        Set<String> existingStudentIds = existingStudents.stream()
+                .map(Student::getStudentId)
+                .collect(Collectors.toSet());
+
+        /* determine if membership should be active */
+        boolean shouldBeActive = bulkRequestDTO.getYearStart().equals(currentYearStart) 
+                && bulkRequestDTO.getYearEnd().equals(currentYearEnd);
+
+        /* check for existing memberships for this year range and filter them out */
+        Set<String> alreadyHasMembership = studentMembershipRepository
+                .findByStudentStudentIdInAndYearStartAndYearEnd(existingStudentIds, 
+                        bulkRequestDTO.getYearStart(), bulkRequestDTO.getYearEnd())
+                .stream()
+                .map(m -> m.getStudent().getStudentId())
+                .collect(Collectors.toSet());
+
+        /* build list of students to create memberships for (exclude those who already have it) */
+        List<StudentMembership> membershipsToCreate = existingStudents.stream()
+                .filter(student -> !alreadyHasMembership.contains(student.getStudentId()))
+                .map(student -> StudentMembership.builder()
+                        .student(student)
+                        .yearStart(bulkRequestDTO.getYearStart())
+                        .yearEnd(bulkRequestDTO.getYearEnd())
+                        .active(shouldBeActive)
+                        .build())
+                .toList();
+
+        /* bulk save all memberships at once (avoids N+1 queries) */
+        List<StudentMembership> savedMemberships = studentMembershipRepository.saveAll(membershipsToCreate);
+
+        /* map to response DTOs */
+        return savedMemberships.stream()
+                .map(studentMembershipMapper::toResponseDTO)
+                .toList();
     }
 }
