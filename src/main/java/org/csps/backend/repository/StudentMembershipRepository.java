@@ -1,5 +1,7 @@
 package org.csps.backend.repository;
 
+import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,6 +26,8 @@ public interface StudentMembershipRepository extends JpaRepository<StudentMember
     
     @EntityGraph(attributePaths = {"student", "student.userAccount", "student.userAccount.userProfile"}, type = EntityGraph.EntityGraphType.FETCH)
     Optional<StudentMembership> findByStudentStudentIdAndYearStartAndYearEnd(String studentId, int yearStart, int yearEnd);
+
+    List<StudentMembership> findByYearStartAndYearEnd(int yearStart, int yearEnd);
     
     /* eager load student and related user profile for dashboard use */
     @EntityGraph(attributePaths = {"student", "student.userAccount", "student.userAccount.userProfile"}, type = EntityGraph.EntityGraphType.FETCH)
@@ -51,6 +55,9 @@ public interface StudentMembershipRepository extends JpaRepository<StudentMember
     /* check if student has active membership */
     @Query("SELECT CASE WHEN COUNT(sm) > 0 THEN true ELSE false END FROM StudentMembership sm WHERE sm.student.studentId = :studentId AND sm.active = true")
     boolean hasActiveMembership(@Param("studentId") String studentId);
+
+    @Query("SELECT DISTINCT sm.student.studentId FROM StudentMembership sm WHERE sm.active = true AND sm.student.studentId IN :studentIds")
+    List<String> findActiveStudentIdsByStudentIdIn(@Param("studentIds") Collection<String> studentIds);
 
     /**
      * Find ALL active student memberships (unpaginated) with eager loading.
